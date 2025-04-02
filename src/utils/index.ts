@@ -20,12 +20,26 @@ ${context.files.map(file => `- ${file.path}`).join("\n")}`;
 /**
  * Creates a user message with optional selected code
  */
-export function createUserMessage(context: Context): Message {
+export function createUserMessageWithContext(context: Context): Message {
   return {
     role: "user",
     content: `${context.command}${
       context.selectedCode ? `\n\nSelected code:\n\`\`\`\n${context.selectedCode}\n\`\`\`` : ""
     }`,
+  };
+}
+
+export function createUserMessage(content: string): Message {
+  return {
+    role: "user",
+    content,
+  };
+}
+
+export function createAssistantMessage(content: string): Message {
+  return {
+    role: "assistant",
+    content,
   };
 }
 

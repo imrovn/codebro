@@ -3,35 +3,39 @@ import * as readline from "node:readline";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { askYesNoQuestion, createSystemMessage, createUserMessage, displayResponse } from "utils/index.js";
-import { getRelevantFiles } from "services/filesystem/index.ts";
-import type { Context } from "types/index.ts";
-import { getClipboardContent } from "services/clipboard/index.ts";
-import { config } from "config/index.ts";
-import { AIServiceFactory } from "services/ai/index.js";
+import { askYesNoQuestion } from "./utils/index.ts";
+import { getRelevantFiles } from "./services/filesystem/index.ts";
+import type { Context } from "./types/index.ts";
+import { getClipboardContent } from "./services/clipboard/index.ts";
+import { config, validateConfig } from "./config/index.ts";
+import { type BaseAgent, createAgent } from "./agents/index.ts";
 
 // Define CLI commands
 const COMMANDS = {
-  HELP: "help",
   VERSION: "version",
   EXIT: ["exit", "quit", "bye"],
   CLEAR: "/clear",
-  HELP_SHORT: "/help",
+  HELP: "/help",
 };
 
 /**
  * Main entry point for the CLI
  */
 async function main() {
+  if (!validateConfig(config)) {
+    process.exit(1);
+  }
   // Parse command line arguments
   const args = process.argv.slice(2);
   const initialCommand = args.join(" ");
+
+  // Create the coder agent
+  const agent = createAgent("coder");
 
   if (initialCommand) {
     // Handle special commands for the initial execution
     switch (initialCommand.toLowerCase()) {
       case COMMANDS.HELP:
-      case COMMANDS.HELP_SHORT:
         displayHelp();
         return;
       case COMMANDS.VERSION:
@@ -40,20 +44,20 @@ async function main() {
       default:
         // Process normal user query
         // await processQuery(agent, initialCommand);
-        await startInteractiveMode();
+        await startInteractiveMode(agent);
         return;
     }
   } else {
     // No command provided, start in interactive mode
     console.log("Welcome to Codebro! Type your coding questions or '/help' for available commands.");
-    await startInteractiveMode();
+    await startInteractiveMode(agent);
   }
 }
 
 /**
  * Start interactive CLI mode
  */
-async function startInteractiveMode() {
+async function startInteractiveMode(agent: BaseAgent) {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -77,23 +81,21 @@ async function startInteractiveMode() {
       rl.close();
       process.exit(0);
     }
-
     switch (command.toLowerCase()) {
-      case COMMANDS.HELP_SHORT:
+      case COMMANDS.HELP:
         displayHelp();
-        break;
+        return;
       case COMMANDS.CLEAR:
         // agent.clearHistory();
         console.log("Conversation history cleared.");
-        break;
+        return;
 
       case COMMANDS.VERSION:
         displayVersion();
-        break;
+        return;
       default:
-        // Process normal user query
-        await processCommand(command);
-        break;
+        await processQuery(agent, command);
+        return;
     }
 
     rl.prompt();
@@ -123,45 +125,42 @@ async function gatherContext(command: string): Promise<Context> {
 /**
  * Process a user query
  */
-async function processCommand(command: string) {
+async function processQuery(agent: BaseAgent, command: string) {
   try {
-    const context = await gatherContext(command);
-    // Create messages
-    const systemMessage = createSystemMessage(context);
-    const userMessage = createUserMessage(context);
-    const messages = [systemMessage, userMessage];
-    console.log("Processing your request...");
-    // Create AI service
-    const aiService = AIServiceFactory.createService(config);
+    const response = await agent.run(command);
 
-    try {
-      if (context.useStreaming) {
-        console.log("\n===== Streaming Response =====\n");
+    // Check the agent's history for command execution results
+    const history = agent.getHistory?.();
+    if (history && history.toolCalls && history.toolCalls.length > 0) {
+      // Find the last executeCommand tool call
+      const lastCommandCall = [...history.toolCalls].reverse().find(tc => tc.call.function.name === "executeCommand");
 
-        let responseText = "";
-        await aiService.streamCompletion(messages, config.model, chunk => {
-          process.stdout.write(chunk);
-          responseText += chunk;
-        });
+      if (lastCommandCall) {
+        console.log("\n--- Command Execution Result ---");
+        const result = lastCommandCall.result;
 
-        console.log("\n\n===============================\n");
+        if (result.stdout) {
+          console.log("\nOutput:");
+          console.log(result.stdout);
+        }
 
-        // Ask if the user wants to apply the code
-        await handleResponseActions(responseText);
-      } else {
-        // Send normal request
-        const response = await aiService.sendCompletion(messages, config.model);
+        if (result.stderr && result.stderr.length > 0) {
+          console.log("\nErrors:");
+          console.log(result.stderr);
+        }
 
-        // Display the response
-        displayResponse(response.content);
+        if (result.error) {
+          console.log("\nExecution Error:");
+          console.log(result.error);
+        }
 
-        // Ask if the user wants to apply the code
-        await handleResponseActions(response.content);
+        console.log("\n--- End of Command Result ---\n");
       }
-    } catch (error) {
-      console.error("Error communicating with AI service:", error);
     }
-  } catch (error) {
+
+    // Display the agent's response
+    console.log(response.response);
+  } catch (error: any) {
     console.error("Error:", error);
   }
 }
@@ -218,7 +217,7 @@ function displayVersion() {
     const packageJsonPath = path.resolve(__dirname, "../package.json");
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
     console.log(`Codebro v${packageJson.version}`);
-  } catch (error) {
+  } catch (error: any) {
     console.log("Codebro v0.0.1"); // Fallback version
   }
 }

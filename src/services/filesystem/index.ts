@@ -46,7 +46,7 @@ export async function getRelevantFiles(
             content,
             isDirectory: false,
           });
-        } catch (error) {
+        } catch (error: any) {
           console.warn(`Could not read file ${entryPath}`);
         }
       }
@@ -103,7 +103,7 @@ export function ensureDirectoryExists(dirPath: string): void {
 export function readFile(filePath: string): string {
   try {
     return fs.readFileSync(filePath, "utf-8");
-  } catch (error) {
+  } catch (error: any) {
     return "";
   }
 }

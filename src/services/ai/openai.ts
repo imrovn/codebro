@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { BaseAIService } from "./base.ts";
-import type { AIResponse, Message } from "types/index.ts";
+import type { AIResponse } from "types/index.ts";
 
 /**
  * OpenAI service implementation
@@ -19,7 +19,7 @@ export class OpenAIService extends BaseAIService {
   /**
    * Send a completion request to OpenAI
    */
-  async sendCompletion(messages: Message[], model: string): Promise<AIResponse> {
+  async sendCompletion(messages: any, model: string): Promise<AIResponse> {
     try {
       const response = await this.client.chat.completions.create({
         model,
@@ -31,7 +31,7 @@ export class OpenAIService extends BaseAIService {
         content: response?.choices[0]?.message.content || "",
         isStreaming: false,
       };
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(this.formatErrorMessage(error));
     }
   }
@@ -39,7 +39,7 @@ export class OpenAIService extends BaseAIService {
   /**
    * Stream a completion request to OpenAI
    */
-  async streamCompletion(messages: Message[], model: string, callback: (chunk: string) => void): Promise<void> {
+  async streamCompletion(messages: any, model: string, callback: (chunk: string) => void): Promise<void> {
     try {
       const stream = await this.client.chat.completions.create({
         model,
@@ -56,7 +56,7 @@ export class OpenAIService extends BaseAIService {
           callback(content);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(this.formatErrorMessage(error));
     }
   }

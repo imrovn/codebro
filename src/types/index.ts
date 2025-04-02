@@ -49,28 +49,29 @@ export interface MemoryBank {
   additionalFiles?: MemoryBankFile[];
 }
 
-// AI Message interfaces based on OpenAI's ChatCompletionMessageParam
 export interface Message {
-  role: "system" | "user" | "assistant";
+  role: "system" | "user" | "assistant" | "function" | "tool";
+  name?: string;
   content: string;
-  // function_call?: {
-  //   name: string;
-  //   arguments: string;
-  // };
-  // arguments?: string;
-  // tool_calls?: {
-  //   id: string;
-  //   type: "function";
-  //   function: {
-  //     name: string;
-  //     arguments: string;
-  //   };
-  // }[];
-  // tool_call_id?: string;
+  function_call?: {
+    name: string;
+    arguments: string;
+  };
+  arguments?: string;
+  tool_calls?: {
+    id: string;
+    type: "function";
+    function: {
+      name: string;
+      arguments: string;
+    };
+  }[];
+  tool_call_id?: string;
 }
 
 // AI Service interface
 export interface AIService {
   sendCompletion(messages: Message[], model: string): Promise<AIResponse>;
+
   streamCompletion(messages: Message[], model: string, callback: (chunk: string) => void): Promise<void>;
 }

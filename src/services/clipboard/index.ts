@@ -6,7 +6,7 @@ import { exec } from "node:child_process";
 export async function getClipboardContent(): Promise<string | undefined> {
   try {
     return await getClipboardData();
-  } catch (error) {
+  } catch (error: any) {
     console.warn("Could not access clipboard:", error);
     return undefined;
   }

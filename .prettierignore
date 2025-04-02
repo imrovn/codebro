@@ -1,0 +1,9 @@
+node_modules
+target
+build
+.git
+.storybook
+vendor
+*.min.js
+bun.lock
+

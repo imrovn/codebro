@@ -1,0 +1,39 @@
+{
+  "name": "codebro",
+  "version": "0.0.1",
+  "module": "src/cli.ts",
+  "type": "module",
+  "bin": {
+    "codebro": "./dist/cli.js"
+  },
+  "scripts": {
+    "dev": "bun run --watch src/cli.ts",
+    "build": "bun build ./src/cli.ts --outdir ./dist --target node",
+    "start": "bun run ./src/cli.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^20.11.30",
+    "@typescript-eslint/eslint-plugin": "^8.29.0",
+    "@typescript-eslint/parser": "^8.29.0",
+    "eslint": "^9.23.0",
+    "eslint-config-prettier": "^10.1.1",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-prettier": "^5.2.5",
+    "eslint-plugin-unused-imports": "^4.1.4",
+    "prettier": "^3.5.3"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "axios": "^1.8.4",
+    "dotenv": "^16.4.7",
+    "openai": "^4.90.0"
+  },
+  "imports": {
+    "#/*": "./src/*",
+    "#": "./src"
+  },
+  "private": true
+}

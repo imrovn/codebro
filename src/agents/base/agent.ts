@@ -55,7 +55,7 @@ export abstract class BaseAgent {
   /**
    * Run the agent with a user message
    */
-  public async chat(message: string = ""): Promise<AgentResponse> {
+  public async chat(message: string = "", onStream?: (chunk: string) => void): Promise<AgentResponse> {
     // Add user message to history
     if (message) {
       this.pushMessage(createUserMessageWithContext(message, this.state.context));
@@ -69,12 +69,12 @@ export abstract class BaseAgent {
       });
     }
 
-    const response = await this.aiService.sendCompletion(this.getMessages(), this.config.model);
+    const response = await this.aiService.getResponse(this.getMessages(), this.config.model, onStream);
     this.pushMessage(createAssistantMessage(response.content));
 
     const toolCalls = this.extractToolCalls(response);
     if (toolCalls && toolCalls.length > 0) {
-      return await this.handleToolCalls(toolCalls);
+      return await this.handleToolCalls(toolCalls, onStream);
     }
 
     return {
@@ -86,7 +86,7 @@ export abstract class BaseAgent {
   /**
    * Handle tool calls from the AI
    */
-  protected async handleToolCalls(toolCalls: ToolCall[]): Promise<AgentResponse> {
+  protected async handleToolCalls(toolCalls: ToolCall[], onStream?: (chunk: string) => void): Promise<AgentResponse> {
     for (const toolCall of toolCalls) {
       const tool = this.findTool(toolCall.function.name);
 
@@ -117,7 +117,7 @@ export abstract class BaseAgent {
     }
 
     // Get final response with tool results
-    return await this.chat();
+    return await this.chat("", onStream);
   }
 
   /**

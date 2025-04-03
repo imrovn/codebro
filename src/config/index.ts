@@ -9,7 +9,7 @@ const defaultConfig: Config = {
   apiKey: process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY || "",
   model: process.env.AI_MODEL || "deepseek-coder/deepseek-coder-33b-instruct",
   maxFiles: 10,
-  useStreaming: Boolean(process.env.USE_STREAMING || true),
+  useStreaming: Boolean(process.env.USE_STREAMING || false),
   excludePaths: ["node_modules", ".git", "dist", "build"],
   useOpenRouter: Boolean(process.env.USE_OPENROUTER || true),
   useOpenAI: Boolean(process.env.USE_OPENAI || false),

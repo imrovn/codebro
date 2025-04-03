@@ -1,4 +1,4 @@
-import type { AIResponse, Message } from "types/index.ts";
+import type { AIResponse } from "types/index.ts";
 
 /**
  * Base abstract class for AI services
@@ -11,15 +11,7 @@ export abstract class BaseAIService {
     this.apiKey = apiKey;
   }
 
-  /**
-   * Send a completion request to the AI provider
-   */
-  abstract sendCompletion(messages: Message[], model: string): Promise<AIResponse>;
-
-  /**
-   * Stream a completion request to the AI provider
-   */
-  abstract streamCompletion(messages: Message[], model: string, callback: (chunk: string) => void): Promise<void>;
+  abstract getResponse(messages: any, model: string, callback?: (chunk: string) => void): Promise<AIResponse>;
 
   /**
    * Format error message from provider response

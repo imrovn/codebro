@@ -67,6 +67,7 @@ async function startInteractiveMode(agent: BaseAgent) {
       rl.close();
       process.exit(0);
     }
+
     switch (command) {
       case COMMANDS.HELP:
         displayHelp();
@@ -81,9 +82,19 @@ async function startInteractiveMode(agent: BaseAgent) {
         rl.prompt();
         return;
       default:
-        await processCommand(agent, command);
     }
 
+    createAgentLog("\nThinking ...");
+    const onStream = config.useStreaming ? (chunk: string) => rl.write(chunk) : undefined;
+    const response = await agent.chat(command, onStream);
+
+    const history = agent.getHistory();
+    if (history && history.toolCalls && history.toolCalls.length > 0) {
+      const lastCommand = [...history.toolCalls].reverse().find(tc => tc.call.function.name === "executeCommand");
+      createCommandResult(lastCommand);
+    }
+
+    console.log(response.response, "\n");
     rl.prompt();
   }).on("close", () => {
     createAgentLog("\nGoodbye!");
@@ -96,16 +107,6 @@ async function startInteractiveMode(agent: BaseAgent) {
  */
 async function processCommand(agent: BaseAgent, message: string) {
   try {
-    createAgentLog("\nThinking ...");
-    const response = await agent.chat(message);
-
-    const history = agent.getHistory();
-    if (history && history.toolCalls && history.toolCalls.length > 0) {
-      const lastCommand = [...history.toolCalls].reverse().find(tc => tc.call.function.name === "executeCommand");
-      createCommandResult(lastCommand);
-    }
-
-    console.log(response.response, "\n");
   } catch (error) {
     createErrorLog("Error while processing command:", error);
     throw new Error(`Failed to process user command: ${error instanceof Error ? error.message : "Unknown error"}`);

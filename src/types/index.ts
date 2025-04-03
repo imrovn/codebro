@@ -1,4 +1,5 @@
 // File types and context interfaces
+
 export interface File {
   name: string;
   path: string;

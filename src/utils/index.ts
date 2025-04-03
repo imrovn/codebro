@@ -1,38 +1,18 @@
-import * as readline from "node:readline";
-import type { Context, Message } from "../types/index.ts";
-
-/**
- * Creates a system message incorporating memory bank information if available
- */
-export function createSystemMessage(context: Context): Message {
-  let content = `You are codebro, an AI assistant for programming tasks. 
-You help users write code, fix bugs, and improve their codebase.
-Current directory: ${context.currentDirectory}
-${context.files.length > 0 ? "The following files are in the project:" : "No files found in the project"}
-${context.files.map(file => `- ${file.path}`).join("\n")}`;
-
-  return {
-    role: "system",
-    content,
-  };
-}
+import chalk from "chalk";
+import { version } from "../../package.json";
+import type { Context, ToolCallResponse } from "types/agent.ts";
+import type { Message } from "types/index.ts";
+import { getRelevantFiles } from "services/filesystem/index.ts";
+import { getClipboardContent } from "services/clipboard/index.ts";
+import { config } from "config/index.ts";
 
 /**
  * Creates a user message with optional selected code
  */
-export function createUserMessageWithContext(context: Context): Message {
+export function createUserMessageWithContext(message: string, context: Context): Message {
   return {
     role: "user",
-    content: `${context.command}${
-      context.selectedCode ? `\n\nSelected code:\n\`\`\`\n${context.selectedCode}\n\`\`\`` : ""
-    }`,
-  };
-}
-
-export function createUserMessage(content: string): Message {
-  return {
-    role: "user",
-    content,
+    content: `${message}${context.selectedCode ? `\n\nSelected code:\n\`\`\`\n${context.selectedCode}\n\`\`\`` : ""}`,
   };
 }
 
@@ -44,35 +24,75 @@ export function createAssistantMessage(content: string): Message {
 }
 
 /**
- * Creates a readline interface for user input/output
+ * Display help information
  */
-export function createReadlineInterface(): readline.Interface {
-  return readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
+export function displayHelp() {
+  createAgentLog(`
+Codebro - Your AI Coding Assistant
+
+Usage: Entering interactive mode until exit signal found via commands below
+> codebro 
+
+Commands:
+  /help                   Display this help message
+  /clear                  Clear conversation history
+  version                 Display version information
+  exit, quit, bye         Exit the application
+  `);
+}
+
+export function displayVersion() {
+  createAgentLog("Codebro v", version);
+}
+
+export function createUserLog(...text: unknown[]) {
+  console.log(chalk.blue(text));
+}
+
+export function createErrorLog(...text: unknown[]) {
+  console.log(chalk.red(text));
+}
+
+export function createAgentLog(...text: unknown[]) {
+  console.log(chalk.blue(text));
+}
+
+export function createCommandResult(command?: ToolCallResponse) {
+  if (command && command.call.function.name === "executeCommand") {
+    createAgentLog("\n--- Command Execution Result ---");
+    const result = command.result;
+
+    if (result.stdout) {
+      createAgentLog("\nOutput:");
+      createAgentLog(result.stdout);
+    }
+
+    if (result.stderr && result.stderr.length > 0) {
+      createAgentLog("\nErrors:");
+      createAgentLog(result.stderr);
+    }
+
+    if (result.error) {
+      createAgentLog("\nExecution Error:");
+      createAgentLog(result.error);
+    }
+
+    createAgentLog("\n--- End of Command Result ---\n");
+  }
 }
 
 /**
- * Ask a yes/no question and wait for user response
+ * Gather context from the current environment
  */
-export async function askYesNoQuestion(question: string): Promise<boolean> {
-  const rl = createReadlineInterface();
+export async function gatherContext(): Promise<Context> {
+  const workingDirectory = process.cwd();
+  const files = await getRelevantFiles(workingDirectory, config.maxFiles, config.excludePaths);
+  const selectedCode = await getClipboardContent();
 
-  return new Promise(resolve => {
-    rl.question(`${question} (y/n): `, answer => {
-      const normalized = answer.toLowerCase().trim();
-      rl.close();
-      resolve(normalized === "y" || normalized === "yes");
-    });
-  });
-}
-
-/**
- * Displays AI response to console with formatting
- */
-export function displayResponse(response: string, appName: string = "codebro"): void {
-  console.log(`\n===== ${appName} Response =====\n`);
-  console.log(response);
-  console.log("\n===============================\n");
+  return {
+    workingDirectory,
+    files,
+    selectedCode,
+    useStreaming: config.useStreaming,
+  };
 }

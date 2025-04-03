@@ -1,11 +1,14 @@
-import type { Config, Message } from "./index.ts";
+import type { Config, File, Message } from "./index.ts";
 
 /**
- * Tool function context
+ * Agent context
  */
-export interface ToolContext {
+export interface Context {
   workingDirectory: string;
   memoryBank?: any;
+  files: File[];
+  selectedCode?: string;
+
   [key: string]: any;
 }
 
@@ -27,7 +30,7 @@ export interface Tool {
   name: string;
   description: string;
   parameters: ToolParameter[];
-  execute: (args: Record<string, any>, context: ToolContext) => Promise<any>;
+  execute: (args: Record<string, any>, context: Context) => Promise<any>;
 }
 
 /**
@@ -65,15 +68,17 @@ export interface AgentResponse {
   thoughts?: string;
 }
 
+export interface ToolCallResponse {
+  readonly call: ToolCall;
+  readonly result: any;
+}
+
 /**
  * Agent run history
  */
 export interface AgentRunHistory {
   messages: Message[];
-  toolCalls: {
-    call: ToolCall;
-    result: any;
-  }[];
+  toolCalls: ToolCallResponse[];
 }
 
 /**
@@ -81,5 +86,5 @@ export interface AgentRunHistory {
  */
 export interface AgentState {
   history: AgentRunHistory;
-  context: ToolContext;
+  context: Context;
 }

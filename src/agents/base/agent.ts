@@ -1,10 +1,14 @@
-import type { AgentConfig, AgentResponse, AgentRunHistory, AgentState, Tool, ToolCall } from "types/agent.ts";
+import type { AgentConfig, AgentResponse, AgentRunHistory, AgentState, Context, Tool, ToolCall } from "types/agent.ts";
 import { config as appConfig, createConfig } from "config/index.ts";
-import * as process from "node:process";
 import type { Message } from "types/index.ts";
 import type { BaseAIService } from "services/ai/base.ts";
 import { AIServiceFactory } from "services/ai/index.ts";
-import { createAssistantMessage, createUserMessage } from "utils/index.ts";
+import { createAssistantMessage, createErrorLog, createUserMessageWithContext } from "utils/index.ts";
+
+const defaultHistory: AgentRunHistory = {
+  messages: [],
+  toolCalls: [],
+};
 
 /**
  * Base Agent class that all specific agents will extend
@@ -17,7 +21,7 @@ export abstract class BaseAgent {
   /**
    * Create a new agent
    */
-  protected constructor(config: AgentConfig) {
+  protected constructor(context: Context, config: AgentConfig) {
     this.config = {
       ...createConfig(config),
       name: config.name || "codebro",
@@ -27,13 +31,8 @@ export abstract class BaseAgent {
 
     // Initialize the state
     this.state = {
-      history: {
-        messages: [],
-        toolCalls: [],
-      },
-      context: {
-        workingDirectory: process.cwd(),
-      },
+      history: defaultHistory,
+      context,
     };
 
     // Initialize AI service
@@ -56,11 +55,12 @@ export abstract class BaseAgent {
   /**
    * Run the agent with a user message
    */
-  public async run(message: string = ""): Promise<AgentResponse> {
+  public async chat(message: string = ""): Promise<AgentResponse> {
     // Add user message to history
     if (message) {
-      this.pushMessage(createUserMessage(message));
+      this.pushMessage(createUserMessageWithContext(message, this.state.context));
     }
+
     // Add system message if this is the first message
     if (this.getMessages().length === 1) {
       this.getMessages().unshift({
@@ -69,23 +69,24 @@ export abstract class BaseAgent {
       });
     }
 
-    const aiResponse = await this.chat();
+    const response = await this.aiService.sendCompletion(this.getMessages(), this.config.model);
+    this.pushMessage(createAssistantMessage(response.content));
 
-    // Process tool calls if any
-    if (aiResponse.toolCalls && aiResponse.toolCalls.length > 0) {
-      return await this.handleToolCalls(aiResponse);
+    const toolCalls = this.extractToolCalls(response);
+    if (toolCalls && toolCalls.length > 0) {
+      return await this.handleToolCalls(toolCalls);
     }
 
-    return aiResponse;
+    return {
+      response: response.content,
+      toolCalls,
+    };
   }
 
   /**
    * Handle tool calls from the AI
    */
-  protected async handleToolCalls(aiResponse: AgentResponse): Promise<AgentResponse> {
-    const toolCalls = aiResponse.toolCalls || [];
-
-    // Execute each tool call
+  protected async handleToolCalls(toolCalls: ToolCall[]): Promise<AgentResponse> {
     for (const toolCall of toolCalls) {
       const tool = this.findTool(toolCall.function.name);
 
@@ -109,13 +110,14 @@ export abstract class BaseAgent {
             content: JSON.stringify(result),
           });
         } catch (error: any) {
-          console.error(`Error executing tool ${toolCall.function.name}:`, error);
+          createErrorLog("Error handle tool calls:", error);
+          throw new Error(`Failed to handle tool calls: ${error instanceof Error ? error.message : "Unknown error"}`);
         }
       }
     }
 
     // Get final response with tool results
-    return await this.run();
+    return await this.chat();
   }
 
   /**
@@ -123,26 +125,6 @@ export abstract class BaseAgent {
    */
   protected findTool(name: string): Tool | undefined {
     return this.config.tools?.find(tool => tool.name === name);
-  }
-
-  /**
-   * Get AI completion from the conversation history
-   */
-  protected async chat(): Promise<AgentResponse> {
-    try {
-      const response = await this.aiService.sendCompletion(this.getMessages(), this.config.model);
-
-      this.pushMessage(createAssistantMessage(response.content));
-      const toolCalls = this.extractToolCalls(response);
-
-      return {
-        response: response.content,
-        toolCalls,
-      };
-    } catch (error: any) {
-      console.error("Error getting AI completion:", error);
-      throw error;
-    }
   }
 
   /**
@@ -197,6 +179,9 @@ export abstract class BaseAgent {
   protected getSystemPrompt(): string {
     // Generate a system prompt that includes available tools
     let systemPrompt = this.config.systemPrompt;
+    systemPrompt += `Current directory ${this.state.context.workingDirectory}\n;
+    ${this.state.context.files.length > 0 ? "The following files are in the project:" : "No files found in the project"}
+    ${this.state.context.files.map(file => `- ${file.path}`).join("\n")} `;
 
     // Add tool definitions if available
     if (this.config.tools && this.config.tools.length > 0) {
@@ -241,16 +226,13 @@ export abstract class BaseAgent {
    * Clear conversation history
    */
   public clearHistory(): void {
-    this.state.history = {
-      messages: [],
-      toolCalls: [],
-    };
+    this.state.history = defaultHistory;
   }
 
   /**
    * Get the agent's history
    */
   public getHistory(): AgentRunHistory {
-    return this.state.history;
+    return this.state.history || defaultHistory;
   }
 }

@@ -6,14 +6,6 @@ export interface File {
   isDirectory: boolean;
 }
 
-export interface Context {
-  currentDirectory: string;
-  files: File[];
-  useStreaming: boolean;
-  command: string;
-  selectedCode?: string;
-}
-
 // Configuration interface
 export interface Config {
   apiKey: string;

@@ -1,7 +1,7 @@
 import { BaseAgent } from "agents/base/agent.ts";
 import { config as defaultConfig } from "config/index.ts";
 import { getCodeTools } from "tools/codeTools.ts";
-import type { AgentConfig, Tool } from "types/agent.ts";
+import type { AgentConfig, Context } from "types/agent.ts";
 
 /**
  * Coder Agent - specialized agent for coding tasks
@@ -10,7 +10,7 @@ export class CoderAgent extends BaseAgent {
   /**
    * Create a new coder agent
    */
-  constructor(config: Partial<AgentConfig> = {}) {
+  constructor(context: Context, config: Partial<AgentConfig> = {}) {
     // Default system prompt for the coder agent
     const systemPrompt = `You are codebro, an expert programming assistant that helps users with coding tasks. 
 You answer questions about code, help write and refactor code, and provide explanations.
@@ -28,7 +28,7 @@ You should write code in a clean, modular, and maintainable way. Prefer simple s
 If you use any libraries or frameworks, make sure to explain why they are appropriate.`;
 
     // Create the agent with coder tools
-    super({
+    super(context, {
       ...defaultConfig,
       name: "codebro",
       description: "A coding assistant that helps with programming tasks",

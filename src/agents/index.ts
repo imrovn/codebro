@@ -1,13 +1,14 @@
 import { CoderAgent } from "./coder/agent.ts";
 import { config } from "../config/index.ts";
+import type { Context } from "types/agent.ts";
 
 /**
  * Factory function to create an agent based on type
  */
-export function createAgent(type: string, options: any = {}) {
+export function createAgent(context: Context, type: string, options: any = {}) {
   switch (type.toLowerCase()) {
     case "coder":
-      return new CoderAgent({
+      return new CoderAgent(context, {
         apiKey: options.apiKey || config.apiKey,
         model: options.model || config.model,
         ...options,

@@ -3,7 +3,7 @@ import * as path from "node:path";
 import * as child_process from "node:child_process";
 import * as util from "node:util";
 import axios from "axios";
-import type { Tool, ToolContext } from "types/agent.ts";
+import type { Context, Tool } from "types/agent.ts";
 
 // Promisify exec
 const execAsync = util.promisify(child_process.exec);
@@ -51,7 +51,7 @@ const searchCodeTool: Tool = {
       default: false,
     },
   ],
-  async execute(args, context: ToolContext): Promise<any> {
+  async execute(args, context: Context): Promise<any> {
     const { query, filePattern, caseSensitive } = args;
     const cwd = context.workingDirectory;
 
@@ -119,7 +119,7 @@ const projectStructureTool: Tool = {
       default: "node_modules,.git,dist,build",
     },
   ],
-  async execute(args, context: ToolContext): Promise<any> {
+  async execute(args, context: Context): Promise<any> {
     const { directory = ".", depth = 3, exclude = "node_modules,.git,dist,build" } = args;
     const cwd = context.workingDirectory;
     const targetDir = path.resolve(cwd, directory);
@@ -215,7 +215,7 @@ const readFileTool: Tool = {
       required: false,
     },
   ],
-  async execute(args, context: ToolContext): Promise<any> {
+  async execute(args, context: Context): Promise<any> {
     const { path: filePath, startLine, endLine } = args;
     const cwd = context.workingDirectory;
     const absolutePath = path.resolve(cwd, filePath);
@@ -284,7 +284,7 @@ const writeFileTool: Tool = {
       default: true,
     },
   ],
-  async execute(args, context: ToolContext): Promise<any> {
+  async execute(args, context: Context): Promise<any> {
     const { path: filePath, content, createDirs = true } = args;
     const cwd = context.workingDirectory;
     const absolutePath = path.resolve(cwd, filePath);
@@ -342,7 +342,7 @@ const editFileTool: Tool = {
       required: true,
     },
   ],
-  async execute(args, context: ToolContext): Promise<any> {
+  async execute(args, context: Context): Promise<any> {
     const { path: filePath, startLine, endLine, newContent } = args;
     const cwd = context.workingDirectory;
     const absolutePath = path.resolve(cwd, filePath);
@@ -417,7 +417,7 @@ const executeCommandTool: Tool = {
       default: 30000,
     },
   ],
-  async execute(args, context: ToolContext): Promise<any> {
+  async execute(args, context: Context): Promise<any> {
     const { command, workingDir = ".", timeout = 30000 } = args;
     const cwd = path.resolve(context.workingDirectory, workingDir);
 
@@ -503,7 +503,7 @@ const fetchUrlTool: Tool = {
       required: false,
     },
   ],
-  async execute(args, context: ToolContext): Promise<any> {
+  async execute(args, context: Context): Promise<any> {
     const { url, method = "GET", headers = {}, data } = args;
 
     try {
@@ -555,7 +555,7 @@ const webSearchTool: Tool = {
       default: 5,
     },
   ],
-  async execute(args, context: ToolContext): Promise<any> {
+  async execute(args, context: Context): Promise<any> {
     const { query, numResults = 5 } = args;
     // This is a stub/mock implementation since we don't have a real search engine API
     // In a real implementation, you would use a search API like Bing, Google, or a custom service

@@ -1,4 +1,4 @@
-import type { AIResponse } from "types/index.ts";
+import type { AIResponse } from "types";
 
 /**
  * Base abstract class for AI services

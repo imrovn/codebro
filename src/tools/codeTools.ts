@@ -3,7 +3,7 @@ import * as path from "node:path";
 import * as child_process from "node:child_process";
 import * as util from "node:util";
 import axios from "axios";
-import type { Context, Tool } from "types/agent.ts";
+import type { Context, Tool } from "types";
 
 // Promisify exec
 const execAsync = util.promisify(child_process.exec);

@@ -1,15 +1,8 @@
 #!/usr/bin/env node
 import * as readline from "node:readline";
-import { config, validateConfig } from "config/index.ts";
-import { type BaseAgent, createAgent } from "agents/index.ts";
-import {
-  createAgentLog,
-  createCommandResult,
-  createErrorLog,
-  displayHelp,
-  displayVersion,
-  gatherContext,
-} from "utils/index.ts";
+import { config, validateConfig } from "config";
+import { type BaseAgent, createAgent } from "agents";
+import { createAgentLog, createCommandResult, displayHelp, displayVersion, gatherContext } from "utils";
 import { program } from "cli.ts";
 import chalk from "chalk";
 
@@ -100,15 +93,4 @@ async function startInteractiveMode(agent: BaseAgent) {
     createAgentLog("\nGoodbye!");
     process.exit(0);
   });
-}
-
-/**
- * Process a user command
- */
-async function processCommand(agent: BaseAgent, message: string) {
-  try {
-  } catch (error) {
-    createErrorLog("Error while processing command:", error);
-    throw new Error(`Failed to process user command: ${error instanceof Error ? error.message : "Unknown error"}`);
-  }
 }

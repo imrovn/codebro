@@ -1,7 +1,7 @@
 import { BaseAIService } from "./base.ts";
 import { OpenAIService } from "./openai.ts";
 import { OpenRouterService } from "./openrouter.ts";
-import type { Config } from "types/index.ts";
+import type { Config } from "types";
 
 /**
  * AI Service Factory

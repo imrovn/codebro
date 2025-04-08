@@ -1,4 +1,4 @@
-import type { AIResponse } from "types/index.ts";
+import type { AIResponse } from "types";
 import { BaseAIService } from "./base.ts";
 import OpenAI from "openai";
 import process from "node:process";

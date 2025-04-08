@@ -6,7 +6,6 @@ import { version } from "../package.json";
 import * as process from "node:process";
 import { main } from "chat.ts";
 
-// Load environment variables
 config();
 
 export const program = new Command();

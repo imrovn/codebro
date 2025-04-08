@@ -1,7 +1,7 @@
-import { BaseAgent } from "agents/base/agent.ts";
-import { config as defaultConfig } from "config/index.ts";
-import { getCodeTools } from "tools/codeTools.ts";
-import type { AgentConfig, Context } from "types/agent.ts";
+import { BaseAgent } from "../base/agent.ts";
+import { config as defaultConfig } from "config";
+import { getCodeTools } from "tools";
+import type { AgentConfig, Context } from "types";
 
 /**
  * Coder Agent - specialized agent for coding tasks

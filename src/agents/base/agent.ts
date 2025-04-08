@@ -1,9 +1,8 @@
-import type { AgentConfig, AgentResponse, AgentRunHistory, AgentState, Context, Tool, ToolCall } from "types/agent.ts";
-import { config as appConfig, createConfig } from "config/index.ts";
-import type { Message } from "types/index.ts";
+import type { AgentConfig, AgentResponse, AgentRunHistory, AgentState, Context, Message, Tool, ToolCall } from "types";
+import { config as appConfig, createConfig } from "config";
 import type { BaseAIService } from "services/ai/base.ts";
-import { AIServiceFactory } from "services/ai/index.ts";
-import { createAssistantMessage, createErrorLog, createUserMessageWithContext } from "utils/index.ts";
+import { AIServiceFactory } from "services/ai";
+import { createAssistantMessage, createErrorLog, createUserMessageWithContext } from "utils";
 
 const defaultHistory: AgentRunHistory = {
   messages: [],

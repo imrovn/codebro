@@ -1,4 +1,4 @@
-import type { Config } from "types/index.ts";
+import type { Config } from "types";
 import * as dotenv from "dotenv";
 
 // Load environment variables

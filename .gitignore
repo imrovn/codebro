@@ -170,3 +170,5 @@ node_modules
 
 # Bun
 bun.lock
+
+*cursor_*

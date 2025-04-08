@@ -1,6 +1,9 @@
 import { CoderAgent } from "agents/coder/agent.ts";
-import { config } from "config";
+import { config } from "configs";
 import type { Context } from "types";
+
+export * from "./agents.types";
+export * from "./agents";
 
 /**
  * Factory function to create an agent based on type

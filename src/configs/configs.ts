@@ -1,5 +1,5 @@
-import type { Config } from "types";
 import * as dotenv from "dotenv";
+import type { Config } from "./configs.types";
 
 // Load environment variables
 dotenv.config();
@@ -12,6 +12,7 @@ const defaultConfig: Config = {
   useStreaming: Boolean(process.env.USE_STREAMING || false),
   excludePaths: ["node_modules", ".git", "dist", "build"],
   useOpenRouter: Boolean(process.env.USE_OPENROUTER || true),
+  useAzure: Boolean(process.env.USE_AZURE || false),
   useOpenAI: Boolean(process.env.USE_OPENAI || false),
 };
 
@@ -34,12 +35,9 @@ export function validateConfig(config: Config): boolean {
     return false;
   }
 
-  if (config.useOpenAI && config.useOpenRouter) {
-    console.warn("Warning: Both OpenAI and OpenRouter are enabled. Defaulting to OpenRouter.");
+  if (config.useOpenAI && config.useOpenRouter && config.useAzure) {
+    console.warn("Warning: Both OpenAI, OpenRouter and Azure are enabled. Defaulting to OpenRouter.");
   }
 
   return true;
 }
-
-// Export the default configuration
-export const config = createConfig();

@@ -1,10 +1,11 @@
 #!/usr/bin/env node
-import * as readline from "node:readline";
-import { config, validateConfig } from "config";
+import { config, validateConfig } from "configs";
 import { type BaseAgent, createAgent } from "agents";
-import { createAgentLog, createCommandResult, displayHelp, displayVersion, gatherContext } from "utils";
-import { program } from "cli.ts";
+import { createAgentLog, displayHelp, displayVersion, gatherContext } from "utils";
 import chalk from "chalk";
+import * as readline from "node:readline/promises";
+import { program } from "./cli.ts";
+import { streamText } from "ai";
 
 // Define CLI commands
 const COMMANDS = {
@@ -33,15 +34,34 @@ export async function main() {
   }
 }
 
+const terminal = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+  prompt: "> ",
+});
+
 /**
  * Start interactive CLI mode
  */
 async function startInteractiveMode(agent: BaseAgent) {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-    prompt: "> ",
-  });
+  while (true) {
+    const userInput = await terminal.question("You: ");
+    const result = streamText({
+      model: openai("gpt-4o"),
+      messages,
+      maxSteps: 5,
+      onStepFinish: step => {
+        console.log(JSON.stringify(step, null, 2));
+      },
+    });
+  }
+
+  // const rl = readline.createInterface({
+  //   input: process.stdin,
+  //   output: process.stdout,
+  //   terminal: true,
+  //   prompt: "> ",
+  // });
   createAgentLog("Welcome to brocode - Your AI Code Assistant!");
   console.log(
     chalk.gray("Interactive mode started. Type 'exit' to quit, '/help' for commands, '/clear' to clear history.\n")
@@ -81,11 +101,11 @@ async function startInteractiveMode(agent: BaseAgent) {
     const onStream = config.useStreaming ? (chunk: string) => rl.write(chunk) : undefined;
     const response = await agent.chat(command, onStream);
 
-    const history = agent.getHistory();
-    if (history && history.toolCalls && history.toolCalls.length > 0) {
-      const lastCommand = [...history.toolCalls].reverse().find(tc => tc.call.function.name === "executeCommand");
-      createCommandResult(lastCommand);
-    }
+    // const history = agent.getHistory();
+    // if (history && history.toolCalls && history.toolCalls.length > 0) {
+    //   const lastCommand = [...history.toolCalls].reverse().find(tc => tc.call.function.name === "executeCommand");
+    //   createCommandResult(lastCommand);
+    // }
 
     console.log(response.response, "\n");
     rl.prompt();

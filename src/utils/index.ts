@@ -3,7 +3,7 @@ import { version } from "../../package.json";
 import type { Context, Message, ToolCallResponse } from "types";
 import { getRelevantFiles } from "services/filesystem";
 import { getClipboardContent } from "services/clipboard";
-import { config } from "config";
+import { config } from "configs";
 
 /**
  * Creates a user message with optional selected code

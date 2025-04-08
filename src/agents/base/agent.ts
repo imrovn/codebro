@@ -1,5 +1,5 @@
 import type { AgentConfig, AgentResponse, AgentRunHistory, AgentState, Context, Message, Tool, ToolCall } from "types";
-import { config as appConfig, createConfig } from "config";
+import { config as appConfig, createConfig } from "configs";
 import type { BaseAIService } from "services/ai/base.ts";
 import { AIServiceFactory } from "services/ai";
 import { createAssistantMessage, createErrorLog, createUserMessageWithContext } from "utils";

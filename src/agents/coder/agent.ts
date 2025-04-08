@@ -1,5 +1,5 @@
 import { BaseAgent } from "../base/agent.ts";
-import { config as defaultConfig } from "config";
+import { config as defaultConfig } from "configs";
 import { getCodeTools } from "tools";
 import type { AgentConfig, Context } from "types";
 

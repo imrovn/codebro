@@ -1,20 +1,27 @@
 {
   "name": "codebro",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "module": "src/cli.ts",
   "type": "module",
-  "bin": {
-    "codebro": "./dist/cli.js"
+  "bin": "./dist/cli.js",
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rovn208/codebro.git"
   },
   "scripts": {
     "dev": "bun run --watch src/cli.ts",
     "build": "bun build ./src/cli.ts --outdir ./dist --target node",
+    "release-latest": "oxlint && bunx bumpp && bun run build && npm publish",
     "start": "bun run ./src/cli.ts",
     "prettier:fix": "prettier . --write"
   },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/node": "^20.11.30",
+    "oxlint": "^0.16.5",
     "prettier": "^3.5.3"
   },
   "peerDependencies": {
@@ -27,5 +34,12 @@
     "dotenv": "^16.4.7",
     "openai": "^4.90.0"
   },
-  "private": true
+  "keywords": [
+    "claude-code",
+    "code bro",
+    "claude code",
+    "agent",
+    "coding agent",
+    "react agent"
+  ]
 }

@@ -60,6 +60,7 @@ export async function runTaskLoop<
         messages,
         mode: "json",
       });
+      console.log("plannnnnnnni", planningResult);
 
       usage = planningResult.usage;
       rawInput = planningResult.request?.body;
@@ -70,7 +71,7 @@ export async function runTaskLoop<
       textResponse = object.response.textResponse;
 
       // Log the planning step
-      console.log(reasoning);
+      console.log("reasoning", reasoning);
 
       if (!nextActions || nextActions.length === 0) {
         if (responseFormat === "text") {
@@ -93,14 +94,14 @@ export async function runTaskLoop<
         const { actionId, parameters, toolCallId } = actionItem as any;
         const action = actions.find(a => a.id === actionId);
 
-        if (!action) {
+        if (!action || action.run == undefined) {
           throw new Error(`Action ${actionId} not found`);
         }
 
         const actionStartTime = Date.now();
         try {
           // Execute the action and return the result
-          const actionResult = await action.run({ parameters });
+          const actionResult = await action.run({ parameters }, { toolCallId, messages });
           const actionDuration = Date.now() - actionStartTime;
 
           // Add tool result message
@@ -228,6 +229,7 @@ export async function processAgentFinalResponse<T>(
         rawInput = request;
 
         // Add the structured response to the messages array using the helper function
+        console.log("final response", finalResponse, JSON.stringify(finalResponse, null, 2));
         const structuredResponseMessage = await createAssistantTextMessage(JSON.stringify(finalResponse, null, 2));
         messages.push(structuredResponseMessage);
       } catch (e) {

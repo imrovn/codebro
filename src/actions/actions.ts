@@ -1,13 +1,7 @@
 import type { Action } from "./actions.types.ts";
 
-export function createAction(config: Action): Action {
-  return {
-    id: config.id,
-    description: config.description,
-    parameters: config.parameters,
-    run: config.run,
-    retries: config.retries || 2,
-  };
+export function createAction(action: Action): Action {
+  return action;
 }
 
 export function formatActionForPrompt(action: Action): string {

@@ -43,6 +43,16 @@ export interface ToolCall {
   };
 }
 
+export interface Config {
+  apiKey: string;
+  model: string;
+  maxFiles: number;
+  excludePaths: string[];
+  useStreaming: boolean;
+  useOpenRouter: boolean;
+  useOpenAI: boolean;
+}
+
 /**
  * Agent configuration
  */

@@ -9,9 +9,10 @@ export async function getRelevantFiles(
   dirPath: string,
   maxFiles: number,
   excludePaths: string[],
-  depth = 0
+  depth = 0,
+  maxDepth = 2
 ): Promise<File[]> {
-  if (depth > 2) return []; // Limit recursion depth
+  if (depth > maxDepth) return []; // Limit recursion depth
 
   const files: File[] = [];
   const entries = fs.readdirSync(dirPath, { withFileTypes: true });
@@ -86,40 +87,4 @@ export function isTextFile(filename: string): boolean {
   ];
   const ext = path.extname(filename).toLowerCase();
   return textExtensions.includes(ext);
-}
-
-/**
- * Creates a directory if it doesn't exist
- */
-export function ensureDirectoryExists(dirPath: string): void {
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
-  }
-}
-
-/**
- * Reads a file from disk
- */
-export function readFile(filePath: string): string {
-  try {
-    return fs.readFileSync(filePath, "utf-8");
-  } catch (error: any) {
-    return "";
-  }
-}
-
-/**
- * Writes content to a file
- */
-export function writeFile(filePath: string, content: string): void {
-  const dir = path.dirname(filePath);
-  ensureDirectoryExists(dir);
-  fs.writeFileSync(filePath, content, "utf-8");
-}
-
-/**
- * Checks if a file exists
- */
-export function fileExists(filePath: string): boolean {
-  return fs.existsSync(filePath);
 }

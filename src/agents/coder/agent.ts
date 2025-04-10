@@ -1,5 +1,4 @@
 import { BaseAgent } from "../base/agent.ts";
-import { config as defaultConfig } from "configs";
 import { getCodeTools } from "tools";
 import type { AgentConfig, Context } from "types";
 
@@ -10,7 +9,7 @@ export class CoderAgent extends BaseAgent {
   /**
    * Create a new coder agent
    */
-  constructor(context: Context, config: Partial<AgentConfig> = {}) {
+  constructor(context: Context, config: Pick<AgentConfig, "model"> & Partial<AgentConfig>) {
     // Default system prompt for the coder agent
     const systemPrompt = `You are codebro, an expert programming assistant that helps users with coding tasks. 
 You answer questions about code, help write and refactor code, and provide explanations.
@@ -29,12 +28,10 @@ If you use any libraries or frameworks, make sure to explain why they are approp
 
     // Create the agent with coder tools
     super(context, {
-      ...defaultConfig,
+      ...config,
       name: "codebro",
-      description: "A coding assistant that helps with programming tasks",
       systemPrompt,
       tools: getCodeTools(),
-      ...config,
     });
   }
 }

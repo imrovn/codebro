@@ -1,8 +1,7 @@
 import type { AgentConfig, AgentResponse, AgentRunHistory, AgentState, Context, Message, Tool, ToolCall } from "types";
-import { config as appConfig, createConfig } from "configs";
-import type { BaseAIService } from "services/ai/base.ts";
-import { AIServiceFactory } from "services/ai";
-import { createAssistantMessage, createErrorLog, createUserMessageWithContext } from "utils";
+import { AIServiceFactory, BaseAIService } from "services/ai/index.ts";
+import { createAssistantMessage, createErrorLog, createUserMessage } from "utils/index.ts";
+import { config as defaultConfig } from "configs";
 
 const defaultHistory: AgentRunHistory = {
   messages: [],
@@ -22,7 +21,7 @@ export abstract class BaseAgent {
    */
   protected constructor(context: Context, config: AgentConfig) {
     this.config = {
-      ...createConfig(config),
+      ...config,
       name: config.name || "codebro",
       systemPrompt: config.systemPrompt || "",
       temperature: config.temperature || 0.7,
@@ -35,12 +34,7 @@ export abstract class BaseAgent {
     };
 
     // Initialize AI service
-    this.aiService = AIServiceFactory.createService({
-      ...appConfig,
-      useOpenAI: this.config.useOpenAI,
-      useOpenRouter: this.config.useOpenRouter,
-      apiKey: this.config.apiKey || appConfig.apiKey,
-    });
+    this.aiService = AIServiceFactory.createService(defaultConfig);
   }
 
   pushMessage(msg: Message): void {
@@ -57,7 +51,7 @@ export abstract class BaseAgent {
   public async chat(message: string = "", onStream?: (chunk: string) => void): Promise<AgentResponse> {
     // Add user message to history
     if (message) {
-      this.pushMessage(createUserMessageWithContext(message, this.state.context));
+      this.pushMessage(createUserMessage(message));
     }
 
     // Add system message if this is the first message
@@ -95,7 +89,7 @@ export abstract class BaseAgent {
           const args = JSON.parse(toolCall.function.arguments);
 
           // Execute the tool
-          const result = await tool.execute(args, this.state.context);
+          const result = await tool.run(args, this.state.context);
 
           // Add tool call and result to history
           this.state.history.toolCalls.push({
@@ -176,11 +170,25 @@ export abstract class BaseAgent {
    * Get the system prompt
    */
   protected getSystemPrompt(): string {
-    // Generate a system prompt that includes available tools
-    let systemPrompt = this.config.systemPrompt;
-    systemPrompt += `Current directory ${this.state.context.workingDirectory}\n;
-    ${this.state.context.files.length > 0 ? "The following files are in the project:" : "No files found in the project"}
-    ${this.state.context.files.map(file => `- ${file.path}`).join("\n")} `;
+    const toolPrompt = `
+To use a tool, respond with a json object with function name and arguments within <@TOOL_CALL></@TOOL_CALL>} XML tags:\n
+<@TOOL_CALL>{"name": <function-name>, "arguments": "<json-encoded-string-of-the-arguments>"}</@TOOL_CALL>
+
+The arguments value is ALWAYS a JSON-encoded string, when there is no arguments, use empty object.
+
+For example:
+<@TOOL_CALL> {"name": "fileRead", "arguments": "{"fileName": "example.txt"}"} </@TOOL_CALL>
+
+<@TOOL_CALL> [{"name": "fileRead", "arguments": "{"fileName": "example.txt"}"},{"name": "projectStructure", "arguments": "{}"} ] </@TOOL_CALL>
+
+<@TOOL_CALL> {"name": "projectStructure", "arguments": "{}"} </@TOOL_CALL>
+
+IMPORTANT:
+- Return ONE tool when its result is needed for subsequent tool
+- Return multiple tools ONLY when they can run independently
+`;
+
+    let systemPrompt = this.config.systemPrompt || "";
 
     // Add tool definitions if available
     if (this.config.tools && this.config.tools.length > 0) {
@@ -196,14 +204,9 @@ export abstract class BaseAgent {
             param.required ? ", required" : ""
           }): ${param.description}\n`;
         }
-
         systemPrompt += "\n";
       }
-
-      systemPrompt += "\nTo use a tool, respond with a JSON object in the following format inside a code block:\n";
-      systemPrompt +=
-        '```json\n{\n  "name": "tool_name",\n  "arguments": {\n    "param1": "value1",\n    "param2": "value2"\n  }\n}\n```\n\n';
-      systemPrompt += "After getting the tool result, analyze it and respond with your final answer.";
+      systemPrompt += toolPrompt;
     }
 
     // Add memory bank info if available

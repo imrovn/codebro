@@ -4,14 +4,15 @@ import type { Context, Message, ToolCallResponse } from "types";
 import { getRelevantFiles } from "services/filesystem";
 import { getClipboardContent } from "services/clipboard";
 import { config } from "configs";
+import process from "process";
 
 /**
  * Creates a user message with optional selected code
  */
-export function createUserMessageWithContext(message: string, context: Context): Message {
+export function createUserMessage(message: string): Message {
   return {
     role: "user",
-    content: `${message}${context.selectedCode ? `\n\nSelected code:\n\`\`\`\n${context.selectedCode}\n\`\`\`` : ""}`,
+    content: message,
   };
 }
 
@@ -45,15 +46,15 @@ export function displayVersion() {
 }
 
 export function createUserLog(...text: unknown[]) {
-  console.log(chalk.blue(text));
+  process.stdout.write(chalk.blue(text));
 }
 
 export function createErrorLog(...text: unknown[]) {
-  console.log(chalk.red(text));
+  process.stdout.write(chalk.red(text));
 }
 
 export function createAgentLog(...text: unknown[]) {
-  console.log(chalk.blue(text));
+  process.stdout.write(chalk.blue(text));
 }
 
 export function createCommandResult(command?: ToolCallResponse) {

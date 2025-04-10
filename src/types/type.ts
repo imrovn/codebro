@@ -4,7 +4,7 @@
 export interface Context {
   workingDirectory: string;
   memoryBank?: any;
-  files: File[];
+  files?: File[];
   selectedCode?: string;
 
   [key: string]: any;
@@ -28,7 +28,7 @@ export interface Tool {
   name: string;
   description: string;
   parameters: ToolParameter[];
-  execute: (args: Record<string, any>, context: Context) => Promise<any>;
+  run: (args: Record<string, any>, context: Context) => Promise<any>;
 }
 
 /**
@@ -56,13 +56,13 @@ export interface Config {
 /**
  * Agent configuration
  */
-export interface AgentConfig extends Config {
+export interface AgentConfig {
+  model: string;
   name: string;
+  systemPrompt?: string;
   description?: string;
-  systemPrompt: string;
   memoryBankDir?: string;
   tools?: Tool[];
-  model: string;
   temperature?: number;
 }
 

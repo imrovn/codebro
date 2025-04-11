@@ -71,7 +71,6 @@ export abstract class BaseAgent {
     this.pushMessage(createAssistantMessage(response.content));
     const toolCalls = response.toolCalls || [];
 
-    // const toolCalls = this.extractToolCalls(response);
     if (toolCalls && toolCalls.length > 0) {
       return await this.handleToolCalls(toolCalls, onStream);
     }
@@ -270,65 +269,21 @@ export abstract class BaseAgent {
   }
 
   /**
-   * Extract tool calls from AI response
-   */
-  protected extractToolCalls(response: any): ToolCall[] | undefined {
-    // If the response already contains tool calls, return them
-    if (response.tool_calls) {
-      return response.tool_calls;
-    }
-
-    try {
-      const content = response.content;
-      process.stdout.write("extract tool calls " + JSON.stringify(content));
-      const toolCallMatch = content.match(/```json\n([\s\S]*?)\n```/);
-
-      if (toolCallMatch && toolCallMatch[1]) {
-        const toolCallData = JSON.parse(toolCallMatch[1]);
-
-        if (Array.isArray(toolCallData)) {
-          return toolCallData.map((call, index) => ({
-            id: call.id || `call-${index}`,
-            type: "function",
-            function: {
-              name: call.name,
-              arguments: JSON.stringify(call.arguments || {}),
-            },
-          }));
-        } else if (toolCallData.name) {
-          return [
-            {
-              id: toolCallData.id || "call-0",
-              type: "function",
-              function: {
-                name: toolCallData.name,
-                arguments: JSON.stringify(toolCallData.arguments || {}),
-              },
-            },
-          ];
-        }
-      }
-    } catch (error: any) {
-      console.warn("Failed to parse tool calls from response:", error);
-    }
-
-    return [];
-  }
-
-  /**
    * Get the system prompt
    */
   protected getSystemPrompt(): string {
     const toolPrompt = `
+ # Tooling
+ 
 To use a tool, respond with a json object with function name and arguments within <@TOOL_CALL></@TOOL_CALL>} XML tags:\n
 <@TOOL_CALL>{"name": <function-name>, "arguments": "<json-encoded-string-of-the-arguments>"}</@TOOL_CALL>
 
 The arguments value is ALWAYS a JSON-encoded string, when there is no arguments, use empty object.
 
 For example:
-<@TOOL_CALL> {"name": "fileRead", "arguments": "{"fileName": "example.txt"}"} </@TOOL_CALL>
+<@TOOL_CALL> {"name": "fileRead", "arguments": "{"reason":"I want to read the content of file example.txt","fileName": "example.txt"}"} </@TOOL_CALL>
 
-<@TOOL_CALL> [{"name": "fileRead", "arguments": "{"fileName": "example.txt"}"},{"name": "projectStructure", "arguments": "{}"} ] </@TOOL_CALL>
+<@TOOL_CALL> [{"name": "fileRead", "arguments": "{"reason":"I want to read the content of file example.txt", "fileName": "example.txt"}"},{"name": "projectStructure", "arguments": "{"reason":"I want to know the project structure of current directory"}"} ] </@TOOL_CALL>
 
 <@TOOL_CALL> {"name": "projectStructure", "arguments": "{}"} </@TOOL_CALL>
 

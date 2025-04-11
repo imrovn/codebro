@@ -1,10 +1,10 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
-import * as child_process from "node:child_process";
-import * as util from "node:util";
 import axios from "axios";
 import type { Context } from "types";
 import type { Tool } from "./tools.types";
+import * as child_process from "node:child_process";
+import * as util from "node:util";
+import * as path from "node:path";
+import * as fs from "node:fs";
 
 // Promisify exec
 const execAsync = util.promisify(child_process.exec);
@@ -18,17 +18,14 @@ export function getCodeTools(): Tool[] {
     editFileTool,
     executeCommandTool,
     fetchUrlTool,
-    webSearchTool,
   ];
 }
 
 export function formatToolForPrompt(tool: Tool): string {
-  let formattedTool = `
- Tool: ${tool.name}\nDescription: ${tool.description}\nParameters\n:
- `;
+  let formattedTool = ` Tool: ${tool.name}\nDescription: ${tool.description}\nParameters:\n `;
 
   for (const param of tool.parameters) {
-    formattedTool += `  - ${param.name} (${param.type}${param.required ? ", required" : ""}): ${param.description}\n`;
+    formattedTool += ` - ${param.name} (${param.type}${param.required ? ", required" : ""}): ${param.description}\n`;
   }
   formattedTool += "\n";
 
@@ -40,7 +37,7 @@ export function formatToolsForPrompt(tools: Tool[]): string {
     return "No tools available.";
   }
 
-  return `Available Actions:\n\n${tools.map(formatToolForPrompt).join("\n")}\n`;
+  return `Available tools that could be chose:\n\n${tools.map(formatToolForPrompt).join("\n")}\n`;
 }
 
 /**
@@ -50,6 +47,12 @@ const searchCodeTool: Tool = {
   name: "searchCode",
   description: "Search for code patterns in the project files",
   parameters: [
+    {
+      name: "reason",
+      type: "string",
+      description: "Reason for executing this tool",
+      required: true,
+    },
     {
       name: "query",
       type: "string",
@@ -72,7 +75,8 @@ const searchCodeTool: Tool = {
   ],
 
   async run(args, context: Context): Promise<any> {
-    const { query, filePattern, caseSensitive } = args;
+    const { reason, query, filePattern, caseSensitive } = args;
+    console.log("searchCodeTool  ", reason);
     const cwd = context.workingDirectory;
 
     try {
@@ -119,6 +123,12 @@ const projectStructureTool: Tool = {
   description: "Get the structure of the project directory",
   parameters: [
     {
+      name: "reason",
+      type: "string",
+      description: "Reason for executing this tool",
+      required: true,
+    },
+    {
       name: "directory",
       type: "string",
       description: "The directory to get the structure for. Defaults to current directory.",
@@ -140,7 +150,8 @@ const projectStructureTool: Tool = {
     },
   ],
   async run(args, context: Context): Promise<any> {
-    const { directory = ".", depth = 3, exclude = "node_modules,.git,dist,build" } = args;
+    const { reason = "", directory = "", depth = 3, exclude = "node_modules,.git,dist,build" } = args;
+    console.log("projectStructureTool", reason, args.reason);
     const cwd = context.workingDirectory;
     const targetDir = path.resolve(cwd, directory);
     const excludePatterns = exclude.split(",").map((p: string) => p.trim());
@@ -217,6 +228,12 @@ const readFileTool: Tool = {
   description: "Read contents of a file",
   parameters: [
     {
+      name: "reason",
+      type: "string",
+      description: "Reason for executing this tool",
+      required: true,
+    },
+    {
       name: "path",
       type: "string",
       description: "Path to the file, relative to the project root",
@@ -236,7 +253,8 @@ const readFileTool: Tool = {
     },
   ],
   async run(args, context: Context): Promise<any> {
-    const { path: filePath, startLine, endLine } = args;
+    const { reason, path: filePath, startLine, endLine } = args;
+    console.log("readFileTool", reason);
     const cwd = context.workingDirectory;
     const absolutePath = path.resolve(cwd, filePath);
 
@@ -285,6 +303,12 @@ const writeFileTool: Tool = {
   description: "Write content to a file",
   parameters: [
     {
+      name: "reason",
+      type: "string",
+      description: "Reason for executing this tool",
+      required: true,
+    },
+    {
       name: "path",
       type: "string",
       description: "Path to the file, relative to the project root",
@@ -305,7 +329,8 @@ const writeFileTool: Tool = {
     },
   ],
   async run(args, context: Context): Promise<any> {
-    const { path: filePath, content, createDirs = true } = args;
+    const { reason, path: filePath, content, createDirs = true } = args;
+    console.log("writeFileTool", reason);
     const cwd = context.workingDirectory;
     const absolutePath = path.resolve(cwd, filePath);
 
@@ -338,6 +363,12 @@ const editFileTool: Tool = {
   description: "Edit an existing file by replacing specific lines or applying patches",
   parameters: [
     {
+      name: "reason",
+      type: "string",
+      description: "Reason for executing this tool",
+      required: true,
+    },
+    {
       name: "path",
       type: "string",
       description: "Path to the file, relative to the project root",
@@ -363,7 +394,8 @@ const editFileTool: Tool = {
     },
   ],
   async run(args, context: Context): Promise<any> {
-    const { path: filePath, startLine, endLine, newContent } = args;
+    const { reason, path: filePath, startLine, endLine, newContent } = args;
+    console.log("editFileTool", reason);
     const cwd = context.workingDirectory;
     const absolutePath = path.resolve(cwd, filePath);
 
@@ -418,6 +450,12 @@ const executeCommandTool: Tool = {
   description: "Execute a shell command in the project directory",
   parameters: [
     {
+      name: "reason",
+      type: "string",
+      description: "Reason for executing this tool",
+      required: true,
+    },
+    {
       name: "command",
       type: "string",
       description: "The command to execute",
@@ -438,7 +476,8 @@ const executeCommandTool: Tool = {
     },
   ],
   async run(args, context: Context): Promise<any> {
-    const { command, workingDir = ".", timeout = 30000 } = args;
+    const { reason, command, workingDir = ".", timeout = 30000 } = args;
+    console.log("executeCommandTool", reason);
     const cwd = path.resolve(context.workingDirectory, workingDir);
 
     // Security check - don't allow dangerous commands
@@ -498,6 +537,12 @@ const fetchUrlTool: Tool = {
   description: "Fetch content from a URL",
   parameters: [
     {
+      name: "reason",
+      type: "string",
+      description: "Reason for executing this tool",
+      required: true,
+    },
+    {
       name: "url",
       type: "string",
       description: "The URL to fetch content from",
@@ -524,8 +569,8 @@ const fetchUrlTool: Tool = {
     },
   ],
   async run(args, context: Context): Promise<any> {
-    const { url, method = "GET", headers = {}, data } = args;
-
+    const { reason, url, method = "GET", headers = {}, data } = args;
+    console.log("fetchUrlTool", reason);
     try {
       const response = await axios({
         url,
@@ -551,52 +596,5 @@ const fetchUrlTool: Tool = {
         url,
       };
     }
-  },
-};
-
-/**
- * Search the web
- */
-const webSearchTool: Tool = {
-  name: "webSearch",
-  description: "Search the web for information",
-  parameters: [
-    {
-      name: "query",
-      type: "string",
-      description: "The search query",
-      required: true,
-    },
-    {
-      name: "numResults",
-      type: "number",
-      description: "Number of results to return",
-      required: false,
-      default: 5,
-    },
-  ],
-  async run(args, context: Context): Promise<any> {
-    const { query, numResults = 5 } = args;
-    // This is a stub/mock implementation since we don't have a real search engine API
-    // In a real implementation, you would use a search API like Bing, Google, or a custom service
-
-    return {
-      warning: "This is a mock implementation. In production, you should implement a real search API.",
-      results: [
-        {
-          title: `${query} - Search Result 1`,
-          url: `https://example.com/result/1?q=${encodeURIComponent(query)}`,
-          snippet: `This is a sample search result about ${query}. It doesn't contain real information.`,
-        },
-        {
-          title: `${query} - Search Result 2`,
-          url: `https://example.com/result/2?q=${encodeURIComponent(query)}`,
-          snippet: `Another sample search result about ${query}. This is not based on real search results.`,
-        },
-      ],
-      query,
-      suggestion:
-        "To implement real search, consider using the Bing Search API, Google Custom Search API, or similar services.",
-    };
   },
 };

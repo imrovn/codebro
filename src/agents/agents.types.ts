@@ -24,9 +24,6 @@ export interface AgentState {
  */
 export interface AgentResponse {
   response: string;
-  // toolCalls?: ToolCall[];
-  // toolResults?: any[];
-  // thoughts?: string;
 }
 
 export interface AgentConfig {

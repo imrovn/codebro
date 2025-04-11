@@ -1,17 +1,19 @@
 import * as dotenv from "dotenv";
 import type { Config } from "./configs.types";
+import process from "node:process";
 
 // Load environment variables
 dotenv.config();
 
 // Default configuration
 const defaultConfig: Config = {
-  apiKey: process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY || "",
-  model: process.env.AI_MODEL || "deepseek-coder/deepseek-coder-33b-instruct",
+  apiKey: process.env.CODE_BRO_API_KEY || "",
+  model: process.env.CODE_BRO_MODEL || "deepseek-coder/deepseek-coder-33b-instruct",
+  baseURL: process.env.CODE_BRO_BASE_URL || "",
   maxFiles: 10,
   useStreaming: Boolean(process.env.USE_STREAMING || true),
   excludePaths: ["node_modules", ".git", "dist", "build"],
-  useOpenRouter: Boolean(process.env.USE_OPENROUTER || true),
+  useOpenRouter: Boolean(process.env.USE_OPENROUTER || false),
   useAzure: Boolean(process.env.USE_AZURE || false),
   useOpenAI: Boolean(process.env.USE_OPENAI || false),
 };
@@ -31,7 +33,12 @@ export function createConfig(overrides: Partial<Config> = {}): Config {
  */
 export function validateConfig(config: Config): boolean {
   if (!config.apiKey) {
-    console.error("Error: API key is not set. Please set OPENROUTER_API_KEY or OPENAI_API_KEY in your .env file.");
+    console.error("Error: API key is not set. Please set CODE_BRO_API_KEY in your .env file.");
+    return false;
+  }
+
+  if (!config.model) {
+    console.error("Error: Model name is not set. Please set CODE_BRO_MODEL in your .env file.");
     return false;
   }
 

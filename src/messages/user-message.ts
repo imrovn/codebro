@@ -1,14 +1,11 @@
 import type { Message } from "./messages.type";
 
 /**
- * Creates a system message with instructions and available actions
- * @param instructions The system instructions
- * @param actions The available actions
- * @returns A formatted system message
+ * Creates a user message with optional selected code
  */
-export async function createUserMessage(input: string): Promise<Message> {
+export function createUserMessage(message: string): Message {
   return {
     role: "user",
-    content: `${input}`,
+    content: message,
   };
 }

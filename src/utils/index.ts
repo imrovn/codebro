@@ -1,27 +1,10 @@
 import chalk from "chalk";
 import { version } from "../../package.json";
-import type { Context, Message, ToolCallResponse } from "types";
-import { getRelevantFiles } from "services/filesystem";
-import { getClipboardContent } from "services/clipboard";
+import type { Context } from "types";
+import { getRelevantFiles } from "filesystem";
 import { config } from "configs";
 import process from "process";
-
-/**
- * Creates a user message with optional selected code
- */
-export function createUserMessage(message: string): Message {
-  return {
-    role: "user",
-    content: message,
-  };
-}
-
-export function createAssistantMessage(content: string): Message {
-  return {
-    role: "assistant",
-    content,
-  };
-}
+import type { ToolCallResponse } from "tools";
 
 /**
  * Display help information
@@ -34,9 +17,6 @@ Usage: Entering interactive mode until exit signal found via commands below
 > codebro 
 
 Commands:
-  /help                   Display this help message
-  /clear                  Clear conversation history
-  version                 Display version information
   exit, quit, bye         Exit the application
   `);
 }
@@ -87,12 +67,10 @@ export function createCommandResult(command?: ToolCallResponse) {
 export async function gatherContext(): Promise<Context> {
   const workingDirectory = process.cwd();
   const files = await getRelevantFiles(workingDirectory, config.maxFiles, config.excludePaths);
-  const selectedCode = await getClipboardContent();
 
   return {
     workingDirectory,
     files,
-    selectedCode,
     useStreaming: config.useStreaming,
   };
 }

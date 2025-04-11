@@ -1,27 +1,41 @@
-import type { Action } from "actions";
-import type { LanguageModelV1 } from "ai";
-import type { Messages } from "messages";
+import type { Message } from "messages";
+import type { Context } from "types";
+import type { Tool, ToolCallResponse } from "tools";
+import type OpenAI from "openai";
 
-export interface AgentRunConfig {
-  input: string;
-  maxSteps?: number;
-  state?: Record<string, any>;
-  isRerun?: boolean;
-  actions?: Action[];
-  model?: LanguageModelV1;
-  messages?: Messages;
+/**
+ * Agent run history
+ */
+export interface AgentRunHistory {
+  messages: Message[];
+  toolCalls: ToolCallResponse[];
+}
+
+/**
+ * Agent state
+ */
+export interface AgentState {
+  history: AgentRunHistory;
+  context: Context;
+}
+
+/**
+ * Agent response
+ */
+export interface AgentResponse {
+  response: string;
+  // toolCalls?: ToolCall[];
+  // toolResults?: any[];
+  // thoughts?: string;
 }
 
 export interface AgentConfig {
-  instructions: string;
-  model: LanguageModelV1;
-  actions: Action[];
+  client: OpenAI;
+  model: string;
+  name: string;
+  systemPrompt?: string;
+  description?: string;
+  memoryBankDir?: string;
+  tools?: Tool[];
+  temperature?: number;
 }
-
-export interface AgentResponse {
-  response: string;
-  state: Record<string, unknown>;
-  messages: Messages;
-}
-
-export type Agent = (runConfig: AgentRunConfig) => Promise<AgentResponse>;

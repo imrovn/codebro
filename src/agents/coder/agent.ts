@@ -1,15 +1,13 @@
-import { BaseAgent } from "../base/agent.ts";
+import type { AgentConfig } from "agents/agents.types.ts";
+import { BaseAgent } from "agents/base/agent";
 import { getCodeTools } from "tools";
-import type { AgentConfig, Context } from "types";
+import type { Context } from "types";
 
 /**
  * Coder Agent - specialized agent for coding tasks
  */
 export class CoderAgent extends BaseAgent {
-  /**
-   * Create a new coder agent
-   */
-  constructor(context: Context, config: Pick<AgentConfig, "model"> & Partial<AgentConfig>) {
+  constructor(context: Context, config: Pick<AgentConfig, "model" | "client"> & Partial<AgentConfig>) {
     // Default system prompt for the coder agent
     const systemPrompt = `You are codebro, an expert programming assistant that helps users with coding tasks. 
 You answer questions about code, help write and refactor code, and provide explanations.

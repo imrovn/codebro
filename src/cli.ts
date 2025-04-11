@@ -1,28 +1,34 @@
-#!/usr/bin/env node
-
-import { Command, type OptionValues } from "commander";
-import { config } from "dotenv";
-import { version } from "../package.json";
+import { createAgent, startCliChat } from "agents";
+import { createAzure } from "@ai-sdk/azure";
 import * as process from "node:process";
-import { main } from "chat.ts";
 
-config();
+async function main() {
+  const azure = createAzure({
+    resourceName: "mgm-datascience-openai-sweden", // Azure resource name
+    apiKey: process.env.CODE_BRO_API_KEY,
+  });
+  const agent = createAgent({
+    instructions: `You are codebro, an expert programming assistant that helps users with coding tasks. 
+You answer questions about code, help write and refactor code, and provide explanations.
+You are knowledgeable about best practices and design patterns.
+Your primary goal is to help the user solve their coding problems efficiently and clearly.
 
-export const program = new Command();
+When the user asks you to write or modify code:
+1. First, understand the task requirements clearly
+2. Think step-by-step about the solution
+3. If needed, use tools to explore the codebase or check documentation
+4. Provide clean, well-documented code that follows best practices
+5. Explain your implementation if it's not obvious
 
-program
-  .name("codebro")
-  .description("AI-powered code editing and project analysis tool")
-  .version(version)
-  .option("-h, --help", "Display help message")
-  .action(async () => {
-    try {
-      await main();
-    } catch (error) {
-      console.error("Error: ", error);
-      process.exit(1);
-    }
+You should write code in a clean, modular, and maintainable way. Prefer simple solutions over complex ones.
+If you use any libraries or frameworks, make sure to explain why they are appropriate.`,
+    actions: [],
+    model: azure(process.env.CODE_BRO_MODEL || "gpt-4o"),
   });
 
-program.parse(process.argv);
-export const options: OptionValues = program.opts();
+  startCliChat(agent, {
+    inputPrompt: "You: ",
+  });
+}
+
+main().catch(console.error);

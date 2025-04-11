@@ -1,15 +1,14 @@
 import axios from "axios";
-import type { Context } from "types";
-import type { Tool } from "./tools.types";
 import * as child_process from "node:child_process";
 import * as util from "node:util";
 import * as path from "node:path";
 import * as fs from "node:fs";
+import type { Action } from "actions";
 
 // Promisify exec
 const execAsync = util.promisify(child_process.exec);
 
-export function getCodeTools(): Tool[] {
+export function getCodeActions(): Action[] {
   return [
     searchCodeTool,
     projectStructureTool,
@@ -21,61 +20,70 @@ export function getCodeTools(): Tool[] {
   ];
 }
 
-export function formatToolForPrompt(tool: Tool): string {
-  let formattedTool = ` Tool: ${tool.name}\nDescription: ${tool.description}\nParameters:\n `;
-
-  for (const param of tool.parameters) {
-    formattedTool += ` - ${param.name} (${param.type}${param.required ? ", required" : ""}): ${param.description}\n`;
-  }
-  formattedTool += "\n";
-
-  return formattedTool;
-}
-
-export function formatToolsForPrompt(tools: Tool[]): string {
-  if (!tools || tools.length === 0) {
-    return "No tools available.";
-  }
-
-  return `Available tools that could be chose:\n\n${tools.map(formatToolForPrompt).join("\n")}\n`;
+//
+// export function formatToolForPrompt(tool: Action): string {
+//   let formattedTool = ` Tool: ${tool.name}\nDescription: ${tool.description}\nParameters:\n `;
+//
+//   for (const param of tool.parameters) {
+//     formattedTool += ` - ${param.name} (${param.type}${param.required ? ", required" : ""}): ${param.description}\n`;
+//   }
+//   formattedTool += "\n";
+//
+//   return formattedTool;
+// }
+//
+// export function formatToolsForPrompt(tools: Action[]): string {
+//   if (!tools || tools.length === 0) {
+//     return "No tools available.";
+//   }
+//
+//   return `Available tools that could be chose:\n\n${tools.map(formatToolForPrompt).join("\n")}\n`;
+// }
+interface ABC {
+  reason: string;
+  query: string;
 }
 
 /**
  * Search code in the project
  */
-const searchCodeTool: Tool = {
-  name: "searchCode",
+const searchCodeTool: Action = {
+  id: "searchCode",
   description: "Search for code patterns in the project files",
-  parameters: [
-    {
-      name: "reason",
-      type: "string",
-      description: "Reason for executing this tool",
-      required: true,
-    },
-    {
-      name: "query",
-      type: "string",
-      description: "The search query or pattern to look for",
-      required: true,
-    },
-    {
-      name: "filePattern",
-      type: "string",
-      description: "Optional glob pattern to limit search to specific files (e.g., '*.js', 'src/**/*.ts')",
-      required: false,
-    },
-    {
-      name: "caseSensitive",
-      type: "boolean",
-      description: "Whether the search should be case sensitive",
-      required: false,
-      default: false,
-    },
-  ],
+  parameters: {
+    type: "object",
+    properties: [
+      {
+        name: "reason",
+        type: "string",
+        description: "Reason for executing this tool",
+        required: true,
+      },
 
-  async run(args, context: Context): Promise<any> {
-    const { reason, query, filePattern, caseSensitive } = args;
+      {
+        name: "query",
+        type: "string",
+        description: "The search query or pattern to look for",
+        required: true,
+      },
+      {
+        name: "filePattern",
+        type: "string",
+        description: "Optional glob pattern to limit search to specific files (e.g., '*.js', 'src/**/*.ts')",
+        required: false,
+      },
+      {
+        name: "caseSensitive",
+        type: "boolean",
+        description: "Whether the search should be case sensitive",
+        required: false,
+        default: false,
+      },
+    ],
+  },
+
+  async run({ context, parameters }): Promise<any> {
+    const { reason, query, filePattern, caseSensitive } = parameters;
     console.log("searchCodeTool  ", reason);
     const cwd = context.workingDirectory;
 
@@ -118,7 +126,7 @@ const searchCodeTool: Tool = {
 /**
  * Get project structure
  */
-const projectStructureTool: Tool = {
+const projectStructureTool: Action = {
   name: "projectStructure",
   description: "Get the structure of the project directory",
   parameters: [
@@ -223,7 +231,7 @@ function getDirStructure(dir: string, maxDepth: number, exclude: string[], curre
 /**
  * Read file from the project
  */
-const readFileTool: Tool = {
+const readFileTool: Action = {
   name: "readFile",
   description: "Read contents of a file",
   parameters: [
@@ -298,7 +306,7 @@ const readFileTool: Tool = {
 /**
  * Write file to the project
  */
-const writeFileTool: Tool = {
+const writeFileTool: Action = {
   name: "writeFile",
   description: "Write content to a file",
   parameters: [
@@ -358,7 +366,7 @@ const writeFileTool: Tool = {
 /**
  * Edit file in the project
  */
-const editFileTool: Tool = {
+const editFileTool: Action = {
   name: "editFile",
   description: "Edit an existing file by replacing specific lines or applying patches",
   parameters: [
@@ -445,7 +453,7 @@ const editFileTool: Tool = {
 /**
  * Execute command in the project
  */
-const executeCommandTool: Tool = {
+const executeCommandTool: Action = {
   name: "executeCommand",
   description: "Execute a shell command in the project directory",
   parameters: [
@@ -532,7 +540,7 @@ function isForbiddenCommand(command: string): boolean {
 /**
  * Fetch content from a URL
  */
-const fetchUrlTool: Tool = {
+const fetchUrlTool: Action = {
   name: "fetchUrl",
   description: "Fetch content from a URL",
   parameters: [

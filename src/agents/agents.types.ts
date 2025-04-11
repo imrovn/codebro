@@ -1,38 +1,37 @@
-import type { Message } from "messages";
-import type { Context } from "types";
-import type { Tool, ToolCallResponse } from "tools";
-import type OpenAI from "openai";
-
-/**
- * Agent run history
- */
-export interface AgentRunHistory {
-  messages: Message[];
-  toolCalls: ToolCallResponse[];
-}
-
-/**
- * Agent state
- */
-export interface AgentState {
-  history: AgentRunHistory;
-  context: Context;
-}
-
-/**
- * Agent response
- */
-export interface AgentResponse {
-  response: string;
-}
+import { z } from "zod";
+import type { Action } from "actions";
+import type { LanguageModelV1 } from "ai";
+import type { Messages } from "messages";
 
 export interface AgentConfig {
-  client: OpenAI;
-  model: string;
-  name: string;
-  systemPrompt?: string;
-  description?: string;
-  memoryBankDir?: string;
-  tools?: Tool[];
-  temperature?: number;
+  instructions: string;
+  model: LanguageModelV1;
+  actions: Action[];
+  agentId?: string;
 }
+
+export interface AgentRunConfig<TResponseFormat = "text" | z.ZodType<any>> {
+  input: string;
+  maxSteps?: number;
+  state?: Record<string, any>;
+  isRerun?: boolean;
+  actions?: Action[];
+  model?: LanguageModelV1;
+  responseFormat?: TResponseFormat;
+  messages?: Messages;
+}
+
+// Helper type to extract the inferred type from a Zod schema
+export type InferResponseType<T> = T extends z.ZodType<infer U> ? U : T extends "text" ? string : unknown;
+
+export interface AgentResponse<T = unknown> {
+  response: T;
+  state: Record<string, unknown>;
+  messages: Messages;
+}
+
+export type Agent<T extends "text" | z.ZodType<any> = "text"> = <
+  TResponseFormat extends T | "text" | z.ZodType<any> = T,
+>(
+  runConfig: AgentRunConfig<TResponseFormat>
+) => Promise<AgentResponse<InferResponseType<TResponseFormat>>>;

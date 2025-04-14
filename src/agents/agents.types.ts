@@ -30,9 +30,9 @@ export interface AgentConfig {
   client: OpenAI;
   model: string;
   name: string;
+  tools: Tool[];
   systemPrompt?: string;
   description?: string;
   memoryBankDir?: string;
-  tools?: Tool[];
   temperature?: number;
 }

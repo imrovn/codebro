@@ -53,8 +53,6 @@ async function chatLoop(agent: BaseAgent) {
 
     const onStream = config.useStreaming ? (chunk: string) => process.stdout.write(chunk) : undefined;
     const response = await agent.chat(userInput, onStream);
-    if (!config.useStreaming) {
-      process.stdout.write(response.response + "\n");
-    }
+    console.log(response + "\n");
   }
 }

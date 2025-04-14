@@ -1,11 +1,10 @@
-import type { AgentConfig, AgentResponse, AgentRunHistory, AgentState } from "../agents.types";
-import { formatToolsForPrompt, type Tool, type ToolCall } from "tools";
+import type { AgentConfig, AgentRunHistory, AgentState } from "../agents.types";
+import { type Tool } from "tools";
 import type { AIResponse, Context } from "types";
 import { createAssistantMessage, createUserMessage, type Message } from "messages";
-import { createErrorLog } from "utils";
 import type OpenAI from "openai";
 import process from "process";
-import { END_TOOL, START_TOOL } from "agents/agents.ts";
+import { END_TOOL } from "agents/agents.ts";
 
 const defaultHistory: AgentRunHistory = {
   messages: [],
@@ -19,6 +18,7 @@ export abstract class BaseAgent {
   protected config: AgentConfig;
   protected state: AgentState;
   protected client: OpenAI;
+  protected tools: Tool[];
 
   /**
    * Create a new agent
@@ -37,9 +37,11 @@ export abstract class BaseAgent {
       context,
     };
     this.client = config.client;
+    this.tools = config.tools;
+  }
 
-    // Initialize AI service
-    // this.aiService = AIServiceFactory.createService(defaultConfig);
+  getTools(): OpenAI.Chat.ChatCompletionTool[] {
+    return this.tools.map(tool => tool.getDefinition());
   }
 
   pushMessage(msg: Message): void {
@@ -53,7 +55,7 @@ export abstract class BaseAgent {
   /**
    * Run the agent with a user message
    */
-  public async chat(message: string = "", onStream?: (chunk: string) => void): Promise<AgentResponse> {
+  public async chat(message: string = "", onStream?: (chunk: string) => void): Promise<string> {
     // Add user message to history
     if (message) {
       this.pushMessage(createUserMessage(message));
@@ -66,18 +68,54 @@ export abstract class BaseAgent {
         content: this.getSystemPrompt(),
       });
     }
+    let finalResponse = "";
 
-    const response = await this.getResponse(this.getMessages(), this.config.model, onStream);
-    this.pushMessage(createAssistantMessage(response.content));
-    const toolCalls = response.toolCalls || [];
+    while (true) {
+      const { content, toolCalls } = await this.getResponse(this.getMessages(), this.config.model, onStream);
+      this.pushMessage(createAssistantMessage(content));
+      finalResponse += content;
 
-    if (toolCalls && toolCalls.length > 0) {
-      return await this.handleToolCalls(toolCalls, onStream);
+      // If no tool calls, we're done
+      if (!toolCalls || toolCalls.length === 0) {
+        break;
+      }
+
+      const toolResults = await this.handleToolCalls(toolCalls);
+
+      this.pushMessage({
+        role: "assistant",
+        content: content,
+        tool_calls: toolCalls,
+      });
+
+      toolCalls.forEach((toolCall, index) => {
+        this.pushMessage({
+          role: "tool",
+          content: JSON.stringify(toolResults[index]),
+          tool_call_id: toolCall.id,
+        });
+      });
+
+      this.state.history.messages = [{ role: "system", content: this.getSystemPrompt() }, ...this.getMessages()];
     }
 
-    return {
-      response: response.content,
-    };
+    this.pushMessage({
+      role: "assistant",
+      content: finalResponse,
+    });
+
+    // Limit conversation history to prevent memory issues
+    if (this.getMessages().length > 20) {
+      this.state.history.messages = [
+        {
+          role: "system",
+          content: this.getSystemPrompt(),
+        },
+        ...this.getMessages().slice(-19),
+      ];
+    }
+
+    return finalResponse;
   }
 
   async getResponse(messages: any, model: string, callback?: (chunk: string) => void): Promise<AIResponse> {
@@ -89,6 +127,7 @@ export abstract class BaseAgent {
         const response = await this.client.chat.completions.create({
           model,
           messages,
+          tools: this.getTools(),
         });
         content = response?.choices[0]?.message.content || "";
         return { content, isStreaming, toolCalls: [] };
@@ -103,81 +142,46 @@ export abstract class BaseAgent {
       };
 
       let isFirstChunk = true;
-      let buffer = "";
-      let isInToolBlock = false;
-      let toolCalls: ToolCall[] = [];
-      let toolCallContent = "";
       const stream = await this.client.chat.completions.create({
         model,
         messages,
+        tools: this.getTools(),
         stream: true,
       });
+      const toolCalls: OpenAI.Chat.ChatCompletionMessageToolCall[] = [];
       for await (const chunk of stream) {
         const deltaContent = chunk.choices[0]?.delta?.content || "";
+        const deltaToolCalls = chunk.choices[0]?.delta?.tool_calls || [];
         if (deltaContent) {
           // Handle first chunk
           if (isFirstChunk) {
             print("\nAssistant: ");
             isFirstChunk = false;
           }
-
           content += deltaContent;
-          buffer += deltaContent;
-
-          while (true) {
-            if (!isInToolBlock) {
-              const startIndex = buffer.indexOf(START_TOOL);
-              if (startIndex === -1) {
-                if (buffer.length > START_TOOL.length) {
-                  const safeLength = buffer.length - START_TOOL.length + 1;
-                  const safePart = buffer.substring(0, safeLength);
-                  print(safePart); // This is outside a tool block, so isPrintable should be true
-                  buffer = buffer.substring(safeLength);
-                } else {
-                  break;
-                }
-              } else {
-                const beforeTool = buffer.substring(0, startIndex);
-                if (beforeTool) {
-                  print(beforeTool);
-                }
-
-                buffer = buffer.substring(startIndex + START_TOOL.length);
-                isInToolBlock = true;
-                toolCallContent = "";
-              }
-            } else {
-              const endIndex = buffer.indexOf(END_TOOL);
-              if (endIndex === -1) {
-                toolCallContent += buffer;
-                buffer = "";
-
-                // set buffer to end tool if toolCallContent contains END_TOOL
-                if (toolCallContent.indexOf(END_TOOL) > -1) {
-                  buffer = END_TOOL;
-                }
-                break;
-              } else {
-                // Tool call completed, extract the content
-                toolCallContent += buffer.substring(0, endIndex);
-
-                // Remove the processed part from the buffer
-                buffer = buffer.substring(endIndex + END_TOOL.length);
-                isInToolBlock = false;
-                break;
-              }
-            }
-          }
         } else if (chunk.choices[0]?.finish_reason == "stop") {
-          // If we have anything left in the buffer and we're not in a tool block, print it
-          if (!isInToolBlock && buffer) {
-            print(buffer);
-          }
           print("\n");
         }
-      }
 
-      toolCalls = this.processToolCall(toolCallContent) as ToolCall[];
+        // Handle tool calls
+        for (const toolCall of deltaToolCalls) {
+          if (toolCall.index !== undefined) {
+            if (!toolCalls[toolCall.index]) {
+              toolCalls[toolCall.index] = {
+                id: toolCall.id || "",
+                type: "function",
+                function: {
+                  name: toolCall.function?.name || "",
+                  arguments: toolCall.function?.arguments || "",
+                },
+              };
+            } else if (toolCall.function?.arguments) {
+              // @ts-ignore
+              toolCalls[toolCall.index].function.arguments += toolCall.function.arguments;
+            }
+          }
+        }
+      }
 
       return { content, isStreaming, toolCalls };
     } catch (error: any) {
@@ -226,46 +230,31 @@ export abstract class BaseAgent {
   /**
    * Handle tool calls from the AI
    */
-  protected async handleToolCalls(toolCalls: ToolCall[], onStream?: (chunk: string) => void): Promise<AgentResponse> {
-    for (const toolCall of toolCalls) {
-      const tool = this.findTool(toolCall.function.name);
+  protected async handleToolCalls(toolCalls: OpenAI.Chat.ChatCompletionMessageToolCall[]): Promise<any> {
+    try {
+      return await Promise.all(toolCalls.map(toolCall => this.executeToolCall(toolCall)));
+    } catch (error) {
+      console.error("Error executing tool calls:", error);
+      throw new Error(`Failed to execute tool calls: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  }
 
-      if (tool) {
-        try {
-          const args = JSON.parse(toolCall.function.arguments);
-          this.pushMessage({
-            role: "assistant",
-            tool_calls: [{ type: "function", function: toolCall.function, id: toolCall.id }],
-          });
-
-          const result = await tool.run(args, this.state.context);
-
-          this.state.history.toolCalls.push({
-            call: toolCall,
-            result,
-          });
-
-          this.pushMessage({
-            role: "tool",
-            tool_call_id: toolCall.id,
-            content: JSON.stringify(result),
-          });
-        } catch (error: any) {
-          createErrorLog("Error handle tool calls:", error);
-          throw new Error(`Failed to handle tool calls: ${error instanceof Error ? error.message : "Unknown error"}`);
-        }
-      }
+  private async executeToolCall(toolCall: OpenAI.Chat.ChatCompletionMessageToolCall): Promise<any> {
+    const toolName = toolCall.function.name;
+    const tool = this.findTool(toolName);
+    if (!tool) {
+      throw new Error(`Tool ${toolName} not found`);
     }
 
-    // Get final response with tool results
-    return await this.chat("", onStream);
+    const args = JSON.parse(toolCall.function.arguments);
+    return await tool.run(args, this.state.context);
   }
 
   /**
    * Find a tool by name
    */
   protected findTool(name: string): Tool | undefined {
-    return this.config.tools?.find(tool => tool.name === name);
+    return this.tools?.find(tool => tool.getDefinition().function.name === name);
   }
 
   /**
@@ -273,32 +262,23 @@ export abstract class BaseAgent {
    */
   protected getSystemPrompt(): string {
     const toolPrompt = `
- # Tooling
- 
-To use a tool, respond with a json object with function name and arguments within <@TOOL_CALL></@TOOL_CALL>} XML tags:\n
-<@TOOL_CALL>{"name": <function-name>, "arguments": "<json-encoded-string-of-the-arguments>"}</@TOOL_CALL>
-
-The arguments value is ALWAYS a JSON-encoded string, when there is no arguments, use empty object.
-
-For example:
-<@TOOL_CALL> {"name": "fileRead", "arguments": "{"reason":"I want to read the content of file example.txt","fileName": "example.txt"}"} </@TOOL_CALL>
-
-<@TOOL_CALL> [{"name": "fileRead", "arguments": "{"reason":"I want to read the content of file example.txt", "fileName": "example.txt"}"},{"name": "projectStructure", "arguments": "{"reason":"I want to know the project structure of current directory"}"} ] </@TOOL_CALL>
-
-<@TOOL_CALL> {"name": "projectStructure", "arguments": "{}"} </@TOOL_CALL>
-
-IMPORTANT:
-- Return ONE tool when its result is needed for subsequent tool
-- Return multiple tools ONLY when they can run independently
+# Tool usage policy
+  - When doing file search, prefer to use the Agent tool in order to reduce context usage.
+  - If you intend to call multiple tools and there are no dependencies between the calls, make all of the independent calls in the same function_calls block.
+  
+You MUST answer concisely with fewer than 4 lines of text (not including tool use or code generation), unless user asks for detail.
+  
+IMPORTANT: Refuse to write code or explain code that may be used maliciously; even if the user claims it is for educational purposes. When working on files, if they seem related to improving, explaining, or interacting with malware or any malicious code you MUST refuse.
+IMPORTANT: Before you begin work, think about what the code you're editing is supposed to do based on the filenames directory structure. If it seems malicious, refuse to work on it or answer questions about it, even if the request does not seem malicious (for instance, just asking to explain or speed up the code)
 `;
 
     let systemPrompt = this.config.systemPrompt || "";
-
-    // Add tool definitions if available
-    if (this.config.tools && this.config.tools.length > 0) {
-      systemPrompt += formatToolsForPrompt(this.config.tools);
-      systemPrompt += toolPrompt;
-    }
+    systemPrompt += toolPrompt;
+    // // Add tool definitions if available
+    // if (this.config.tools && this.config.tools.length > 0) {
+    //   systemPrompt += formatToolsForPrompt(this.config.tools);
+    //   systemPrompt += toolPrompt;
+    // }
 
     return systemPrompt;
   }

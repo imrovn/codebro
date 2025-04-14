@@ -5,6 +5,7 @@ import * as child_process from "node:child_process";
 import * as util from "node:util";
 import * as path from "node:path";
 import * as fs from "node:fs";
+import type OpenAI from "openai";
 
 // Promisify exec
 const execAsync = util.promisify(child_process.exec);
@@ -21,58 +22,42 @@ export function getCodeTools(): Tool[] {
   ];
 }
 
-export function formatToolForPrompt(tool: Tool): string {
-  let formattedTool = ` Tool: ${tool.name}\nDescription: ${tool.description}\nParameters:\n `;
-
-  for (const param of tool.parameters) {
-    formattedTool += ` - ${param.name} (${param.type}${param.required ? ", required" : ""}): ${param.description}\n`;
-  }
-  formattedTool += "\n";
-
-  return formattedTool;
-}
-
-export function formatToolsForPrompt(tools: Tool[]): string {
-  if (!tools || tools.length === 0) {
-    return "No tools available.";
-  }
-
-  return `Available tools that could be chose:\n\n${tools.map(formatToolForPrompt).join("\n")}\n`;
-}
-
 /**
  * Search code in the project
  */
 const searchCodeTool: Tool = {
-  name: "searchCode",
-  description: "Search for code patterns in the project files",
-  parameters: [
-    {
-      name: "reason",
-      type: "string",
-      description: "Reason for executing this tool",
-      required: true,
-    },
-    {
-      name: "query",
-      type: "string",
-      description: "The search query or pattern to look for",
-      required: true,
-    },
-    {
-      name: "filePattern",
-      type: "string",
-      description: "Optional glob pattern to limit search to specific files (e.g., '*.js', 'src/**/*.ts')",
-      required: false,
-    },
-    {
-      name: "caseSensitive",
-      type: "boolean",
-      description: "Whether the search should be case sensitive",
-      required: false,
-      default: false,
-    },
-  ],
+  getDefinition(): OpenAI.Chat.ChatCompletionTool {
+    return {
+      type: "function" as const,
+      function: {
+        name: "searchCode",
+        description: "Search for code patterns in the project files",
+        parameters: {
+          type: "object",
+          properties: {
+            reason: {
+              type: "string",
+              description: "Reason for executing this tool",
+            },
+            query: {
+              type: "string",
+              description: "The search query or pattern to look for",
+            },
+            filePattern: {
+              type: "string",
+              description: "Optional glob pattern to limit search to specific files (e.g., '*.js', 'src/**/*.ts')",
+            },
+            caseSensitive: {
+              type: "boolean",
+              description: "Whether the search should be case sensitive",
+            },
+          },
+          required: ["query", "reason"],
+          additionalProperties: false,
+        },
+      },
+    };
+  },
 
   async run(args, context: Context): Promise<any> {
     const { reason, query, filePattern, caseSensitive } = args;
@@ -119,36 +104,39 @@ const searchCodeTool: Tool = {
  * Get project structure
  */
 const projectStructureTool: Tool = {
-  name: "projectStructure",
-  description: "Get the structure of the project directory",
-  parameters: [
-    {
-      name: "reason",
-      type: "string",
-      description: "Reason for executing this tool",
-      required: true,
-    },
-    {
-      name: "directory",
-      type: "string",
-      description: "The directory to get the structure for. Defaults to current directory.",
-      required: false,
-    },
-    {
-      name: "depth",
-      type: "number",
-      description: "Maximum depth to traverse",
-      required: false,
-      default: 3,
-    },
-    {
-      name: "exclude",
-      type: "string",
-      description: "Comma separated list of patterns to exclude (e.g., 'node_modules,dist')",
-      required: false,
-      default: "node_modules,.git,dist,build",
-    },
-  ],
+  getDefinition(): OpenAI.Chat.ChatCompletionTool {
+    return {
+      type: "function" as const,
+      function: {
+        name: "projectStructure",
+        description: "Get the structure of the project directory",
+        parameters: {
+          type: "object",
+          properties: {
+            reason: {
+              type: "string",
+              description: "Reason for executing this tool",
+            },
+            directory: {
+              type: "string",
+              description: "The directory to get the structure for. Defaults to current directory.",
+            },
+            depth: {
+              type: "number",
+              description: "Maximum depth to traverse",
+            },
+            exclude: {
+              type: "string",
+              description: "Comma separated list of patterns to exclude (e.g., 'node_modules,dist')",
+            },
+          },
+          required: ["reason"],
+          additionalProperties: false,
+        },
+      },
+    };
+  },
+
   async run(args, context: Context): Promise<any> {
     const { reason = "", directory = "", depth = 3, exclude = "node_modules,.git,dist,build" } = args;
     console.log("projectStructureTool", reason, args.reason);
@@ -224,34 +212,39 @@ function getDirStructure(dir: string, maxDepth: number, exclude: string[], curre
  * Read file from the project
  */
 const readFileTool: Tool = {
-  name: "readFile",
-  description: "Read contents of a file",
-  parameters: [
-    {
-      name: "reason",
-      type: "string",
-      description: "Reason for executing this tool",
-      required: true,
-    },
-    {
-      name: "path",
-      type: "string",
-      description: "Path to the file, relative to the project root",
-      required: true,
-    },
-    {
-      name: "startLine",
-      type: "number",
-      description: "Starting line number (1-based indexing)",
-      required: false,
-    },
-    {
-      name: "endLine",
-      type: "number",
-      description: "Ending line number (inclusive)",
-      required: false,
-    },
-  ],
+  getDefinition(): OpenAI.Chat.ChatCompletionTool {
+    return {
+      type: "function" as const,
+      function: {
+        name: "readFile",
+        description: "Read contents of a file",
+        parameters: {
+          type: "object",
+          properties: {
+            reason: {
+              type: "string",
+              description: "Reason for executing this tool",
+            },
+            path: {
+              type: "string",
+              description: "Path to the file, relative to the project root",
+            },
+            startLine: {
+              type: "number",
+              description: "Starting line number (1-based indexing)",
+            },
+            endLine: {
+              type: "number",
+              description: "Ending line number (inclusive)",
+            },
+          },
+          required: ["reason", "path"],
+          additionalProperties: false,
+        },
+      },
+    };
+  },
+
   async run(args, context: Context): Promise<any> {
     const { reason, path: filePath, startLine, endLine } = args;
     console.log("readFileTool", reason);
@@ -299,35 +292,39 @@ const readFileTool: Tool = {
  * Write file to the project
  */
 const writeFileTool: Tool = {
-  name: "writeFile",
-  description: "Write content to a file",
-  parameters: [
-    {
-      name: "reason",
-      type: "string",
-      description: "Reason for executing this tool",
-      required: true,
-    },
-    {
-      name: "path",
-      type: "string",
-      description: "Path to the file, relative to the project root",
-      required: true,
-    },
-    {
-      name: "content",
-      type: "string",
-      description: "Content to write to the file",
-      required: true,
-    },
-    {
-      name: "createDirs",
-      type: "boolean",
-      description: "Whether to create parent directories if they don't exist",
-      required: false,
-      default: true,
-    },
-  ],
+  getDefinition(): OpenAI.Chat.ChatCompletionTool {
+    return {
+      type: "function" as const,
+      function: {
+        name: "writeFile",
+        description: "Write content to a file",
+        parameters: {
+          type: "object",
+          properties: {
+            reason: {
+              type: "string",
+              description: "Reason for executing this tool",
+            },
+            path: {
+              type: "string",
+              description: "Path to the file, relative to the project root",
+            },
+            content: {
+              type: "string",
+              description: "Content to write to the file",
+            },
+            createDirs: {
+              type: "boolean",
+              description: "Whether to create parent directories if they don't exist",
+            },
+          },
+          required: ["reason", "path", "content"],
+          additionalProperties: false,
+        },
+      },
+    };
+  },
+
   async run(args, context: Context): Promise<any> {
     const { reason, path: filePath, content, createDirs = true } = args;
     console.log("writeFileTool", reason);
@@ -359,40 +356,43 @@ const writeFileTool: Tool = {
  * Edit file in the project
  */
 const editFileTool: Tool = {
-  name: "editFile",
-  description: "Edit an existing file by replacing specific lines or applying patches",
-  parameters: [
-    {
-      name: "reason",
-      type: "string",
-      description: "Reason for executing this tool",
-      required: true,
-    },
-    {
-      name: "path",
-      type: "string",
-      description: "Path to the file, relative to the project root",
-      required: true,
-    },
-    {
-      name: "startLine",
-      type: "number",
-      description: "Starting line number to replace (1-based indexing)",
-      required: true,
-    },
-    {
-      name: "endLine",
-      type: "number",
-      description: "Ending line number to replace (inclusive)",
-      required: true,
-    },
-    {
-      name: "newContent",
-      type: "string",
-      description: "New content to replace the specified lines with",
-      required: true,
-    },
-  ],
+  getDefinition(): OpenAI.Chat.ChatCompletionTool {
+    return {
+      type: "function" as const,
+      function: {
+        name: "editFile",
+        description: "Edit an existing file by replacing specific lines or applying patches",
+        parameters: {
+          type: "object",
+          properties: {
+            reason: {
+              type: "string",
+              description: "Reason for executing this tool",
+            },
+            path: {
+              type: "string",
+              description: "Path to the file, relative to the project root",
+            },
+            startLine: {
+              type: "number",
+              description: "Starting line number to replace (1-based indexing)",
+            },
+            endLine: {
+              type: "number",
+              description: "Ending line number to replace (inclusive)",
+            },
+            newContent: {
+              type: "string",
+              description: "New content to replace the specified lines with",
+            },
+          },
+          required: ["reason", "path", "startLine", "endLine", "newContent"],
+          additionalProperties: false,
+        },
+      },
+    };
+  },
+
   async run(args, context: Context): Promise<any> {
     const { reason, path: filePath, startLine, endLine, newContent } = args;
     console.log("editFileTool", reason);
@@ -446,35 +446,39 @@ const editFileTool: Tool = {
  * Execute command in the project
  */
 const executeCommandTool: Tool = {
-  name: "executeCommand",
-  description: "Execute a shell command in the project directory",
-  parameters: [
-    {
-      name: "reason",
-      type: "string",
-      description: "Reason for executing this tool",
-      required: true,
-    },
-    {
-      name: "command",
-      type: "string",
-      description: "The command to execute",
-      required: true,
-    },
-    {
-      name: "workingDir",
-      type: "string",
-      description: "Working directory relative to project root. Defaults to project root.",
-      required: false,
-    },
-    {
-      name: "timeout",
-      type: "number",
-      description: "Timeout in milliseconds. Defaults to 30000 (30 seconds).",
-      required: false,
-      default: 30000,
-    },
-  ],
+  getDefinition(): OpenAI.Chat.ChatCompletionTool {
+    return {
+      type: "function" as const,
+      function: {
+        name: "executeCommand",
+        description: "Execute a shell command in the project directory",
+        parameters: {
+          type: "object",
+          properties: {
+            reason: {
+              type: "string",
+              description: "Reason for executing this tool",
+            },
+            command: {
+              type: "string",
+              description: "The command to execute",
+            },
+            workingDir: {
+              type: "string",
+              description: "Working directory relative to project root. Defaults to project root.",
+            },
+            timeout: {
+              type: "number",
+              description: "Timeout in milliseconds. Defaults to 30000 (30 seconds).",
+            },
+          },
+          required: ["reason", "command"],
+          additionalProperties: false,
+        },
+      },
+    };
+  },
+
   async run(args, context: Context): Promise<any> {
     const { reason, command, workingDir = ".", timeout = 30000 } = args;
     console.log("executeCommandTool", reason);
@@ -533,41 +537,43 @@ function isForbiddenCommand(command: string): boolean {
  * Fetch content from a URL
  */
 const fetchUrlTool: Tool = {
-  name: "fetchUrl",
-  description: "Fetch content from a URL",
-  parameters: [
-    {
-      name: "reason",
-      type: "string",
-      description: "Reason for executing this tool",
-      required: true,
-    },
-    {
-      name: "url",
-      type: "string",
-      description: "The URL to fetch content from",
-      required: true,
-    },
-    {
-      name: "method",
-      type: "string",
-      description: "HTTP method (GET, POST, etc.)",
-      required: false,
-      default: "GET",
-    },
-    {
-      name: "headers",
-      type: "object",
-      description: "HTTP headers to include in the request",
-      required: false,
-    },
-    {
-      name: "data",
-      type: "object",
-      description: "Data to send with POST/PUT requests",
-      required: false,
-    },
-  ],
+  getDefinition(): OpenAI.Chat.ChatCompletionTool {
+    return {
+      type: "function" as const,
+      function: {
+        name: "fetchUrl",
+        description: "Fetch content from a URL",
+        parameters: {
+          type: "object",
+          properties: {
+            reason: {
+              type: "string",
+              description: "Reason for executing this tool",
+            },
+            url: {
+              type: "string",
+              description: "The URL to fetch content from",
+            },
+            method: {
+              type: "string",
+              description: "HTTP method (GET, POST, etc.)",
+            },
+            headers: {
+              type: "object",
+              description: "HTTP headers to include in the request",
+            },
+            data: {
+              type: "object",
+              description: "Data to send with POST/PUT requests",
+            },
+          },
+          required: ["reason", "url"],
+          additionalProperties: false,
+        },
+      },
+    };
+  },
+
   async run(args, context: Context): Promise<any> {
     const { reason, url, method = "GET", headers = {}, data } = args;
     console.log("fetchUrlTool", reason);

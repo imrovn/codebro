@@ -1,4 +1,5 @@
 import type { Context } from "types";
+import OpenAI from "openai";
 
 /**
  * Tool parameter
@@ -15,10 +16,9 @@ export interface ToolParameter {
  * Tool definition
  */
 export interface Tool {
-  name: string;
-  description: string;
-  parameters: ToolParameter[];
-  run: (args: Record<string, any>, context: Context) => Promise<any>;
+  getDefinition(): OpenAI.Chat.ChatCompletionTool;
+
+  run(args: Record<string, any>, context: Context): Promise<any>;
 }
 
 /**

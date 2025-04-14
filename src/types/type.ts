@@ -1,4 +1,4 @@
-import type { ToolCall } from "tools";
+import OpenAI from "openai";
 
 /**
  * Agent context
@@ -34,7 +34,7 @@ export interface File {
 // Response interfaces
 export interface AIResponse {
   content: string;
-  toolCalls: ToolCall[];
+  toolCalls: OpenAI.Chat.ChatCompletionMessageToolCall[];
   isStreaming?: boolean;
 }
 

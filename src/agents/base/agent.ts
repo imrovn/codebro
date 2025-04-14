@@ -281,9 +281,6 @@ IMPORTANT: Before you begin work, think about what the code you're editing is su
     }
 
     systemPrompt += toolPrompt;
-
-    console.log(systemPrompt);
-
     return systemPrompt;
   }
 

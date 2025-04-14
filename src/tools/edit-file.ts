@@ -70,12 +70,12 @@ Remember: when making multiple file edits in a row to the same file, you should 
       const fullFilePath = isAbsolute(filePath) ? filePath : resolve(cwd, filePath);
       const dir = dirname(fullFilePath);
       const originalFile = existsSync(fullFilePath) ? readFileSync(fullFilePath, "utf8") : "";
-      console.log("editFileTool at %s because %s", fullFilePath, reason);
+      console.log("editFileTool", reason);
 
       mkdirSync(dir, { recursive: true });
       const { patch, updatedFile } = applyEdit(cwd, filePath, oldString, newString);
+      console.log("editFileTool", "updatedFile", updatedFile);
       await writeFile(fullFilePath, updatedFile, { encoding: "utf8", flush: true });
-      console.log("patched", patch);
 
       return {
         success: true,

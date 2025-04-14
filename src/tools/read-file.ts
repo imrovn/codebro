@@ -47,12 +47,7 @@ export const readFileTool: Tool = {
 
   async run(args, context: Context): Promise<any> {
     const { reason, path: filePath, startLine, endLine } = args;
-    console.log(
-      "readFileTool file %s at because %s",
-      filePath,
-      startLine != undefined && endLine != undefined ? `(${startLine} - ${endLine})` : "",
-      reason
-    );
+    console.log("readFileTool ", reason);
     const cwd = context.workingDirectory;
     const absolutePath = path.resolve(cwd, filePath);
 

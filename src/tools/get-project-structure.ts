@@ -56,7 +56,6 @@ export const projectStructureTool: Tool = {
 
       // Get directory structure recursively
       const structure = getDirStructure(targetDir, depth, excludePatterns);
-      console.log("here the current directory under", directory);
       return { structure };
     } catch (error: any) {
       return {

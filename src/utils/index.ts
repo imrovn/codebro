@@ -5,6 +5,8 @@ import { getRelevantFiles } from "filesystem";
 import { config } from "configs";
 import process from "process";
 import type { ToolCallResponse } from "tools";
+import fs from "node:fs";
+import path from "node:path";
 
 /**
  * Display help information
@@ -73,4 +75,16 @@ export async function gatherContext(): Promise<Context> {
     files,
     useStreaming: config.useStreaming,
   };
+}
+
+export async function makeLocalDirIfNotExists() {
+  const workingDirectory = process.cwd();
+  const localDir = path.join(workingDirectory, ".codebro");
+  try {
+    if (!fs.existsSync(localDir)) {
+      fs.mkdirSync(localDir);
+    }
+  } catch (err) {
+    console.error(err);
+  }
 }

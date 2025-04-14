@@ -9,7 +9,6 @@ import { fetchUrlTool } from "tools/fetch-url.ts";
 import { thinkingTool } from "tools/think.ts";
 import { architectTool } from "tools/architect.ts";
 
-export * from "./tools";
 export * from "./tools.types";
 
 export function getCodeTools(): Tool[] {

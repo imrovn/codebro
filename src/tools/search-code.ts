@@ -44,7 +44,7 @@ export const searchCodeTool: Tool = {
 
   async run(args, context: Context): Promise<any> {
     const { reason, query, filePattern = "", caseSensitive } = args;
-    console.log("searchCodeTool with query %s because ", query, reason);
+    console.log("searchCodeTool", reason);
     const cwd = context.workingDirectory;
 
     try {

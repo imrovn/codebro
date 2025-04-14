@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { config, validateConfig } from "configs";
-import { createAgentLog, displayHelp, gatherContext } from "utils";
+import { createAgentLog, displayHelp, gatherContext, makeLocalDirIfNotExists } from "utils";
 import * as readline from "node:readline/promises";
 import { program } from "./cli.ts";
 import process from "process";
@@ -21,7 +21,7 @@ export async function main() {
   if (!validateConfig(config)) {
     process.exit(1);
   }
-
+  await makeLocalDirIfNotExists();
   const context = await gatherContext();
   const client = getClient(config);
   const coderAgent = new CoderAgent(context, { model: config.model, client });

@@ -46,7 +46,7 @@ export const fetchUrlTool: Tool = {
 
   async run(args, context: Context): Promise<any> {
     const { reason, url, method = "GET", headers = {}, data } = args;
-    console.log("fetchUrlTool at ", url, reason);
+    console.log("fetchUrlTool", reason);
     try {
       const response = await axios({
         url,

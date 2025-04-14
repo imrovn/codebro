@@ -4,7 +4,8 @@ import type { AIResponse, Context } from "types";
 import { createAssistantMessage, createUserMessage, type Message } from "messages";
 import type OpenAI from "openai";
 import process from "process";
-import { END_TOOL } from "agents/agents.ts";
+import path from "path";
+import { promises as fs } from "fs";
 
 const defaultHistory: AgentRunHistory = {
   messages: [],
@@ -190,43 +191,6 @@ export abstract class BaseAgent {
     }
   }
 
-  private cleanupToolCallContent(toolCallContent: string) {
-    const endIndex = toolCallContent.indexOf(END_TOOL);
-    return toolCallContent.substring(0, endIndex === -1 ? toolCallContent.length : endIndex);
-  }
-
-  private processToolCall(toolCallContent: string) {
-    toolCallContent = this.cleanupToolCallContent(toolCallContent);
-
-    try {
-      const toolCallData = JSON.parse(toolCallContent);
-
-      if (Array.isArray(toolCallData)) {
-        return toolCallData.map((call, index) => ({
-          id: call.id || `call-${index}`,
-          type: "function",
-          function: {
-            name: call.name,
-            arguments: JSON.stringify(call.arguments || {}),
-          },
-        }));
-      } else if (toolCallData.name) {
-        return [
-          {
-            id: toolCallData.id || "call-0",
-            type: "function",
-            function: {
-              name: toolCallData.name,
-              arguments: JSON.stringify(toolCallData.arguments || {}),
-            },
-          },
-        ];
-      }
-    } catch (error) {
-      return [];
-    }
-  }
-
   /**
    * Handle tool calls from the AI
    */
@@ -267,21 +231,36 @@ export abstract class BaseAgent {
   - If you intend to call multiple tools and there are no dependencies between the calls, make all of the independent calls in the same function_calls block.
   
 You MUST answer concisely with fewer than 4 lines of text (not including tool use or code generation), unless user asks for detail.
-  
+
 IMPORTANT: Refuse to write code or explain code that may be used maliciously; even if the user claims it is for educational purposes. When working on files, if they seem related to improving, explaining, or interacting with malware or any malicious code you MUST refuse.
-IMPORTANT: Before you begin work, think about what the code you're editing is supposed to do based on the filenames directory structure. If it seems malicious, refuse to work on it or answer questions about it, even if the request does not seem malicious (for instance, just asking to explain or speed up the code)
 `;
 
     let systemPrompt = this.config.systemPrompt || "";
-
     if (this.state.context.files?.length) {
       systemPrompt += `Current directory ${this.state.context.workingDirectory}\n;
-    ${this.state.context.files.length > 0 ? "The following files are in the project:" : "No files found in the project"}
-    ${this.state.context.files.map(file => `- ${file.path}`).join("\n")} `;
+"The following files are in the project:" : "No files found in the project"}
+${this.state.context.files.map(file => `- ${file.path}`).join("\n")} `;
     }
 
     systemPrompt += toolPrompt;
+
+    const additionalPrompt = this.loadAdditionalPrompt();
+    if (additionalPrompt) {
+      systemPrompt += `\n# Additional rules from user\n ${additionalPrompt}\n`;
+    }
     return systemPrompt;
+  }
+
+  async loadAdditionalPrompt(): Promise<string> {
+    const rulesFilePath = path.join(this.state.context.workingDirectory, ".codebro/.codebrorules");
+    try {
+      return await fs.readFile(rulesFilePath, "utf8");
+    } catch (error: any) {
+      if (error.code === "ENOENT") {
+        return "";
+      }
+      throw error;
+    }
   }
 
   /**

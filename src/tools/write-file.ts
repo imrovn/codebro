@@ -13,7 +13,7 @@ export const writeFileTool: Tool = {
       type: "function" as const,
       function: {
         name: "writeFile",
-        description: `Write a file to the local filesystem. Overwrites the existing file if there is one.
+        description: `Write a file to the local filesystem. Overwrites the existing file if there is one. only use this tool if you want to overwrite files
 
 Before using this tool:
 
@@ -47,7 +47,7 @@ Before using this tool:
 
   async run(args, context: Context): Promise<any> {
     const { reason, path: filePath, content, createDirs = true } = args;
-    console.log("writeFileTool at %s with content %s because %s", filePath, content, reason);
+    console.log("writeFileTool", reason);
     const cwd = context.workingDirectory;
     const absolutePath = path.resolve(cwd, filePath);
 

@@ -2,17 +2,6 @@ import type { Context } from "types";
 import OpenAI from "openai";
 
 /**
- * Tool parameter
- */
-export interface ToolParameter {
-  name: string;
-  type: string;
-  description: string;
-  required?: boolean;
-  default?: any;
-}
-
-/**
  * Tool definition
  */
 export interface Tool {

@@ -273,12 +273,16 @@ IMPORTANT: Before you begin work, think about what the code you're editing is su
 `;
 
     let systemPrompt = this.config.systemPrompt || "";
+
+    if (this.state.context.files?.length) {
+      systemPrompt += `Current directory ${this.state.context.workingDirectory}\n;
+    ${this.state.context.files.length > 0 ? "The following files are in the project:" : "No files found in the project"}
+    ${this.state.context.files.map(file => `- ${file.path}`).join("\n")} `;
+    }
+
     systemPrompt += toolPrompt;
-    // // Add tool definitions if available
-    // if (this.config.tools && this.config.tools.length > 0) {
-    //   systemPrompt += formatToolsForPrompt(this.config.tools);
-    //   systemPrompt += toolPrompt;
-    // }
+
+    console.log(systemPrompt);
 
     return systemPrompt;
   }

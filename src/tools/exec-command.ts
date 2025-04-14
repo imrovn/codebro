@@ -1,0 +1,98 @@
+import type { Tool } from "tools/tools.types.ts";
+import type OpenAI from "openai";
+import type { Context } from "types";
+import path from "node:path";
+import * as child_process from "node:child_process";
+import * as util from "node:util";
+// Promisify exec
+const execAsync = util.promisify(child_process.exec);
+/**
+ * Execute command in the project
+ */
+export const executeCommandTool: Tool = {
+  getDefinition(): OpenAI.Chat.ChatCompletionTool {
+    return {
+      type: "function" as const,
+      function: {
+        name: "executeCommand",
+        description: "Execute a shell command in the project directory",
+        parameters: {
+          type: "object",
+          properties: {
+            reason: {
+              type: "string",
+              description: "Reason for executing this tool",
+            },
+            command: {
+              type: "string",
+              description: "The command to execute",
+            },
+            workingDir: {
+              type: "string",
+              description: "Working directory relative to project root. Defaults to project root.",
+            },
+            timeout: {
+              type: "number",
+              description: "Timeout in milliseconds. Defaults to 30000 (30 seconds).",
+            },
+          },
+          required: ["reason", "command"],
+          additionalProperties: false,
+        },
+      },
+    };
+  },
+
+  async run(args, context: Context): Promise<any> {
+    const { reason, command, workingDir = ".", timeout = 30000 } = args;
+    console.log("executeCommandTool", reason);
+    const cwd = path.resolve(context.workingDirectory, workingDir);
+
+    // Security check - don't allow dangerous commands
+    if (isForbiddenCommand(command)) {
+      return { error: "Command rejected for security reasons" };
+    }
+
+    try {
+      // Execute the command with timeout
+      const { stdout, stderr } = await execAsync(command, {
+        cwd,
+        timeout,
+        shell: "/bin/bash",
+      });
+
+      return {
+        stdout: stdout.trim(),
+        stderr: stderr.trim(),
+        command,
+        workingDir,
+      };
+    } catch (error: any) {
+      return {
+        error: error.message || "Command execution failed",
+        stderr: error.stderr,
+        stdout: error.stdout,
+        command,
+      };
+    }
+  },
+};
+
+/**
+ * Check if a command is forbidden for security reasons
+ */
+function isForbiddenCommand(command: string): boolean {
+  // List of dangerous patterns to block
+  const forbiddenPatterns = [
+    /rm\s+(-r[f]?|--recursive)\s+\//, // rm -rf /
+    /^\s*rm\s+.*\/\s+/, // removing root directories
+    />\s*\/dev\/[hs]d[a-z]/, // writing to disk devices
+    /mkfs/, // formatting file systems
+    /dd\s+.*of=\/dev\/[hs]d[a-z]/, // writing raw to disk
+    /wget.+\|\s*sh/, // piping web content to shell
+    /curl.+\|\s*sh/, // piping web content to shell
+  ];
+
+  // Check against forbidden patterns
+  return forbiddenPatterns.some(pattern => pattern.test(command));
+}

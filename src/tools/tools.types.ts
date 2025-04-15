@@ -32,13 +32,8 @@ export interface Task {
   description: string;
   status: "pending" | "in_progress" | "completed" | "failed";
   subtasks?: Array<{ id: string; description: string; status: "pending" | "completed" }>;
-  dependencies?: string[];
-  output?: string;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface ProjectState {
   tasks: Task[];
-  lastUpdated: string;
 }

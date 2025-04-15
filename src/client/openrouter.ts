@@ -6,7 +6,7 @@ export function getOpenRouterClient(config: Config): OpenAI {
     apiKey: config.apiKey,
     baseURL: "https://openrouter.ai/api/v1",
     defaultHeaders: {
-      "HTTP-Referer": "https://github.com/rovn208/codebro",
+      "HTTP-Referer": "https://github.com/rovndev/codebro",
       "X-Title": "Codebro",
     },
   });

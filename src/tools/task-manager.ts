@@ -84,7 +84,7 @@ Only delete tasks when user ask, otherwise keep track the progress.
   },
 
   async run(args, context: Context): Promise<any> {
-    const { action, taskId, description, status, subtasks, dependencies, output } = args;
+    const { action, taskId, description, status, subtasks } = args;
     const tasksPath = path.join(context.workingDirectory, ".codebro/tasks.md");
 
     try {
@@ -110,10 +110,6 @@ Only delete tasks when user ask, otherwise keep track the progress.
               description: st.description,
               status: st.status || "pending",
             })),
-            dependencies: dependencies || [],
-            output: output || "",
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
           };
           tasks.push(newTask);
           await writeMarkdownTasks(tasksPath, tasks);
@@ -133,9 +129,6 @@ Only delete tasks when user ask, otherwise keep track the progress.
               description: st.description,
               status: st.status || "pending",
             })) || task.subtasks;
-          task.dependencies = dependencies || task.dependencies;
-          task.output = output !== undefined ? output : task.output;
-          task.updatedAt = new Date().toISOString();
           tasks[taskIndex] = task;
           await writeMarkdownTasks(tasksPath, tasks);
           return { success: true, message: "Task updated" };

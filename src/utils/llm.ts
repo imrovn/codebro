@@ -3,7 +3,7 @@ import { config } from "configs";
 
 export async function callLlm(systemPrompt: string, prompt: string): Promise<string> {
   const client = getClient(config);
-
+  console.log("callingLLM with prompt: ", prompt);
   const response = await client.chat.completions.create({
     model: config.model,
     messages: [

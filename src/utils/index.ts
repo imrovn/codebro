@@ -110,42 +110,23 @@ export function parseMarkdownTasks(content: string): Task[] {
       id: descriptionMatch[2] || uuidv4(),
       description: descriptionMatch[1] || "",
       status: "pending",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
       subtasks: [],
-      dependencies: [],
     };
 
-    let currentSection = "";
+    // Sub tasks
     for (const line of lines.slice(1)) {
-      if (line.startsWith("- **Status**: ")) {
-        task.status = line.replace("- **Status**: ", "").trim() as Task["status"];
-      } else if (line.startsWith("- **Created**: ")) {
-        task.createdAt = line.replace("- **Created**: ", "").trim();
-      } else if (line.startsWith("- **Updated**: ")) {
-        task.updatedAt = line.replace("- **Updated**: ", "").trim();
-      } else if (line.startsWith("- **Dependencies**: ")) {
-        task.dependencies = line
-          .replace("- **Dependencies**: ", "")
-          .trim()
-          .split(",")
-          .filter(d => d);
-      } else if (line.startsWith("- **Output**: ")) {
-        task.output = line.replace("- **Output**: ", "").trim();
-      } else if (line.startsWith("- **Subtasks**: ")) {
-        currentSection = "subtasks";
-      } else if (currentSection === "subtasks" && line.startsWith("  - ")) {
-        const subtaskMatch = line.match(/\[([ x])\] (.*) \((subtask-[^\)]+)\)/);
-        if (subtaskMatch) {
-          task.subtasks!.push({
-            id: subtaskMatch[3] || uuidv4(),
-            description: subtaskMatch[2] || "",
-            status: subtaskMatch[1] === "x" ? "completed" : "pending",
-          });
-        }
+      const subtaskMatch = line.match(/\[([ x])\] (.*) \((subtask-[^\)]+)\)/);
+      if (subtaskMatch) {
+        task.subtasks!.push({
+          id: subtaskMatch[3] || uuidv4(),
+          description: subtaskMatch[2] || "",
+          status: subtaskMatch[1] === "x" ? "completed" : "pending",
+        });
       }
     }
 
+    task.status =
+      task.subtasks?.length == task.subtasks?.filter(st => st.status === "completed").length ? "completed" : "pending";
     tasks.push(task);
   }
 
@@ -159,13 +140,7 @@ export async function writeMarkdownTasks(filePath: string, tasks: Task[]): Promi
   let content = "# Codebro Tasks\n\n";
   for (const task of tasks) {
     content += `# Task: ${task.description} (${task.id})\n`;
-    content += `- **Status**: ${task.status}\n`;
-    content += `- **Created**: ${task.createdAt}\n`;
-    content += `- **Updated**: ${task.updatedAt}\n`;
-    content += `- **Dependencies**: ${task.dependencies?.join(",") || "none"}\n`;
-    content += `- **Output**: ${task.output || "none"}\n`;
     if (task.subtasks?.length) {
-      content += `- **Subtasks**:\n`;
       for (const subtask of task.subtasks) {
         const checkbox = subtask.status === "completed" ? "[x]" : "[ ]";
         content += `  - ${checkbox} ${subtask.description} (${subtask.id})\n`;

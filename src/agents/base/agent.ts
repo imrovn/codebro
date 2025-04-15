@@ -1,6 +1,5 @@
 import type { AgentConfig, AgentRunHistory, AgentState, AIResponse } from "../agents.types";
 import { formatToolsForPrompt, removeRedundantTools, type Task, type Tool } from "tools";
-import { taskManagerTool } from "tools/task-manager";
 import type { Context } from "types";
 import { createAssistantMessage, createUserMessage, type Message } from "messages";
 import type OpenAI from "openai";
@@ -49,34 +48,33 @@ export abstract class BaseAgent {
     await fs.mkdir(codebroDir, { recursive: true });
 
     //  create project tasks
-    const statePath = path.join(codebroDir, "tasks.md");
-    try {
-      const stateContent = await fs.readFile(statePath, "utf-8");
-      this.state.context.projectState = JSON.parse(stateContent);
-    } catch (error: any) {
-      if (error.code === "ENOENT") {
-        const initialState = { tasks: [], lastUpdated: new Date().toISOString() };
-        await fs.writeFile(statePath, JSON.stringify(initialState, null, 2));
-        this.state.context.projectState = initialState;
-      } else {
-        throw error;
-      }
-    }
+    const taskPath = path.join(codebroDir, "tasks.md");
+    await fs.writeFile(taskPath, "# Codebro tasks\n\n", "utf8");
+    // try {
+    //   const taskContent = await fs.readFile(taskPath, "utf-8");
+    //   this.state.context.projectState = { tasks: parseMarkdownTasks(taskContent) };
+    // } catch (error: any) {
+    //   if (error.code === "ENOENT") {
+    //     this.state.context.projectState = { tasks: [] };
+    //   } else {
+    //     throw error;
+    //   }
+    // }
 
-    // Load or create memory
-    const memoryPath = path.join(codebroDir, "memory.json");
-    try {
-      const memoryContent = await fs.readFile(memoryPath, "utf-8");
-      this.state.context.memory = JSON.parse(memoryContent);
-    } catch (error: any) {
-      if (error.code === "ENOENT") {
-        const initialMemory = { conversations: [], lastUpdated: new Date().toISOString() };
-        await fs.writeFile(memoryPath, JSON.stringify(initialMemory, null, 2));
-        this.state.context.memory = initialMemory;
-      } else {
-        throw error;
-      }
-    }
+    // // Load or create memory
+    // const memoryPath = path.join(codebroDir, "memory.json");
+    // try {
+    //   const memoryContent = await fs.readFile(memoryPath, "utf-8");
+    //   this.state.context.memory = JSON.parse(memoryContent);
+    // } catch (error: any) {
+    //   if (error.code === "ENOENT") {
+    //     const initialMemory = { conversations: [], lastUpdated: new Date().toISOString() };
+    //     await fs.writeFile(memoryPath, JSON.stringify(initialMemory, null, 2));
+    //     this.state.context.memory = initialMemory;
+    //   } else {
+    //     throw error;
+    //   }
+    // }
   }
 
   getTools(): OpenAI.Chat.ChatCompletionTool[] {
@@ -85,38 +83,30 @@ export abstract class BaseAgent {
 
   pushMessage(msg: Message): void {
     this.state.history.messages.push(msg);
-    this.updateMemory(msg).catch(console.error);
+    // this.updateMemory(msg).catch(console.error);
   }
 
   getMessages(): Message[] {
     return this.state.history.messages;
   }
 
-  /**
-   * Update memory with new message
-   */
-  protected async updateMemory(msg: Message): Promise<void> {
-    const memoryPath = path.join(this.state.context.workingDirectory, ".codebro/memory.json");
-    let memory = this.state.context.memory || { conversations: [], lastUpdated: new Date().toISOString() };
-
-    memory.conversations.push({
-      role: msg.role,
-      content: JSON.stringify(msg.content),
-      timestamp: new Date().toISOString(),
-    });
-    memory.lastUpdated = new Date().toISOString();
-
-    await fs.writeFile(memoryPath, JSON.stringify(memory, null, 2));
-
-    this.state.context.memory = memory;
-  }
-
-  // protected async isAllTasksCompleted(): Promise<boolean> {
-  //   const {success, tasks}  = await taskManagerTool.run({ action: "list", }, this.state.context ) as {success: boolean, tasks: Task[]};
-  //  for (const task of tasks) {
-  //    if  (task.status !== "completed" || (task.subtasks  && task.subtasks.filter(st -> st.))) {}
-  //  }
-  //  return true;
+  // /**
+  //  * Update memory with new message
+  //  */
+  // protected async updateMemory(msg: Message): Promise<void> {
+  //   const memoryPath = path.join(this.state.context.workingDirectory, ".codebro/memory.json");
+  //   let memory = this.state.context.memory || { conversations: [], lastUpdated: new Date().toISOString() };
+  //
+  //   memory.conversations.push({
+  //     role: msg.role,
+  //     content: JSON.stringify(msg.content),
+  //     timestamp: new Date().toISOString(),
+  //   });
+  //   memory.lastUpdated = new Date().toISOString();
+  //
+  //   await fs.writeFile(memoryPath, JSON.stringify(memory, null, 2));
+  //
+  //   this.state.context.memory = memory;
   // }
 
   public async chat(message: string = "", onStream?: (chunk: string) => void): Promise<string> {
@@ -212,6 +202,7 @@ export abstract class BaseAgent {
       };
 
       let isFirstChunk = true;
+      console.log("Calling llm with content", (JSON.parse(JSON.stringify(messages)) as Array<any>).pop()?.content);
       const stream = await this.client.chat.completions.create({
         model,
         messages,
@@ -306,18 +297,18 @@ export abstract class BaseAgent {
     return this.tools?.find(tool => tool.getDefinition().function.name === name);
   }
 
-  /**
-   * Sync project state from file
-   */
-  private async syncProjectState(): Promise<void> {
-    const statePath = path.join(this.state.context.workingDirectory, ".codebro/tasks.md");
-    try {
-      const stateContent = await fs.readFile(statePath, "utf-8");
-      this.state.context.projectState = JSON.parse(stateContent);
-    } catch (error: any) {
-      console.error("Failed to sync project state:", error.message);
-    }
-  }
+  // /**
+  //  * Sync project state from file
+  //  */
+  // private async syncProjectState(): Promise<void> {
+  //   const statePath = path.join(this.state.context.workingDirectory, ".codebro/tasks.md");
+  //   try {
+  //     const stateContent = await fs.readFile(statePath, "utf-8");
+  //     this.state.context.projectState = JSON.parse(stateContent);
+  //   } catch (error: any) {
+  //     console.error("Failed to sync project state:", error.message);
+  //   }
+  // }
 
   /**
    * Get the system prompt

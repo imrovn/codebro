@@ -4,9 +4,10 @@ import type { Context } from "types";
 import { getRelevantFiles } from "filesystem";
 import { config } from "configs";
 import process from "process";
-import type { ToolCallResponse } from "tools";
-import fs from "node:fs";
+import type { Task, ToolCallResponse } from "tools";
+import { promises as fs } from "node:fs";
 import path from "node:path";
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * Display help information
@@ -81,10 +82,119 @@ export async function makeLocalDirIfNotExists() {
   const workingDirectory = process.cwd();
   const localDir = path.join(workingDirectory, ".codebro");
   try {
-    if (!fs.existsSync(localDir)) {
-      fs.mkdirSync(localDir);
+    if (await !fs.exists(localDir)) {
+      await fs.mkdir(localDir);
     }
   } catch (err) {
     console.error(err);
   }
+}
+
+/**
+ * Parse Markdown tasks from .codebro/tasks.md
+ */
+export function parseMarkdownTasks(content: string): Task[] {
+  const tasks: Task[] = [];
+  const taskSections = content.split(/^# Task: /m).slice(1);
+
+  for (const section of taskSections) {
+    const lines = section.split("\n");
+    if (!lines.length) {
+      continue;
+    }
+
+    const descriptionMatch = lines[0]?.match(/^(.*) \((task-[^\)]+)\)/);
+    if (!descriptionMatch) continue;
+
+    const task: Task = {
+      id: descriptionMatch[2] || uuidv4(),
+      description: descriptionMatch[1] || "",
+      status: "pending",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      subtasks: [],
+      dependencies: [],
+    };
+
+    let currentSection = "";
+    for (const line of lines.slice(1)) {
+      if (line.startsWith("- **Status**: ")) {
+        task.status = line.replace("- **Status**: ", "").trim() as Task["status"];
+      } else if (line.startsWith("- **Created**: ")) {
+        task.createdAt = line.replace("- **Created**: ", "").trim();
+      } else if (line.startsWith("- **Updated**: ")) {
+        task.updatedAt = line.replace("- **Updated**: ", "").trim();
+      } else if (line.startsWith("- **Dependencies**: ")) {
+        task.dependencies = line
+          .replace("- **Dependencies**: ", "")
+          .trim()
+          .split(",")
+          .filter(d => d);
+      } else if (line.startsWith("- **Output**: ")) {
+        task.output = line.replace("- **Output**: ", "").trim();
+      } else if (line.startsWith("- **Subtasks**: ")) {
+        currentSection = "subtasks";
+      } else if (currentSection === "subtasks" && line.startsWith("  - ")) {
+        const subtaskMatch = line.match(/\[([ x])\] (.*) \((subtask-[^\)]+)\)/);
+        if (subtaskMatch) {
+          task.subtasks!.push({
+            id: subtaskMatch[3] || uuidv4(),
+            description: subtaskMatch[2] || "",
+            status: subtaskMatch[1] === "x" ? "completed" : "pending",
+          });
+        }
+      }
+    }
+
+    tasks.push(task);
+  }
+
+  return tasks;
+}
+
+/**
+ * Write tasks to .codebro/tasks.md in Markdown format
+ */
+export async function writeMarkdownTasks(filePath: string, tasks: Task[]): Promise<void> {
+  let content = "# Codebro Tasks\n\n";
+  for (const task of tasks) {
+    content += `# Task: ${task.description} (${task.id})\n`;
+    content += `- **Status**: ${task.status}\n`;
+    content += `- **Created**: ${task.createdAt}\n`;
+    content += `- **Updated**: ${task.updatedAt}\n`;
+    content += `- **Dependencies**: ${task.dependencies?.join(",") || "none"}\n`;
+    content += `- **Output**: ${task.output || "none"}\n`;
+    if (task.subtasks?.length) {
+      content += `- **Subtasks**:\n`;
+      for (const subtask of task.subtasks) {
+        const checkbox = subtask.status === "completed" ? "[x]" : "[ ]";
+        content += `  - ${checkbox} ${subtask.description} (${subtask.id})\n`;
+      }
+    }
+    content += "\n";
+  }
+  await fs.writeFile(filePath, content, "utf-8");
+}
+
+/**
+ * Check if all tasks are completed
+ */
+export function checkTaskCompletion(tasks: Task[]): { allCompleted: boolean; incompleteTasks: string[] } {
+  const incompleteTasks: string[] = [];
+  for (const task of tasks) {
+    if (task.status !== "completed") {
+      incompleteTasks.push(`${task.id}: ${task.description} (${task.status})`);
+    }
+    if (task.subtasks) {
+      for (const subtask of task.subtasks) {
+        if (subtask.status !== "completed") {
+          incompleteTasks.push(`${subtask.id}: ${subtask.description} (subtask of ${task.id})`);
+        }
+      }
+    }
+  }
+  return {
+    allCompleted: incompleteTasks.length === 0,
+    incompleteTasks,
+  };
 }

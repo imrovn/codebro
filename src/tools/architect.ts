@@ -55,6 +55,17 @@ Keep responses focused, specific and actionable.
 
 IMPORTANT: Do not ask the user if you should implement the changes at the end. Just provide the plan as described above.
 IMPORTANT: Do not attempt to write the code or use any string modification tools. Just provide the plan.
+
+The output should be in a plain list, separate by line break (\\n):
+For example: 
+User query: Create simple terminal snake game 
+Output:
+Task: Set Up Project Structure
+- Create a single Python file snake_game.py
+- Import required libraries (curses, random, time)
+Task: Initialize Game Environment
+- Set up curses screen
+- Configure terminal settings
       `;
       return {
         success: true,

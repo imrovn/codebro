@@ -5,6 +5,7 @@ import { dirname, isAbsolute, resolve } from "node:path";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { type Hunk, structuredPatch } from "diff";
+import chalk from "chalk";
 
 /**
  * Edit file in the project
@@ -16,23 +17,21 @@ export const editFileTool: Tool = {
       function: {
         name: "editFile",
         description: `
-This is a tool for editing files. 
-For moving or renaming files, you should generally use the Bash tool with the 'mv' command instead. 
-For larger edits, use the Write tool to overwrite files.
-        
-The tool will replace ONE occurrence of oldString with newString in the specified file.
-If you need to change multiple instances: Make separate calls to this tool for each instance, Each call must uniquely identify its specific instance using extensive context
+This tool edits a file by replacing a specific string with new content, preserving the entire original file content.
+For moving or renaming files, use the 'executeCommand' tool with 'mv'. For overwriting entire files, use the 'writeFile' tool.
+
+The tool replaces ONE occurrence of oldString with newString in the specified file, ensuring the final file is complete and idiomatic.
+If multiple replacements are needed, make separate calls, each uniquely identifying the instance with extensive context.
 When making edits:
-   - Ensure the edit results in idiomatic, correct code
-   - Do not leave the code in a broken state
-   - Always use absolute file paths (starting with /)
+   - Ensure the edit results in correct, idiomatic code.
+   - Do not leave the code in a broken state.
+   - Use absolute file paths (starting with /).
+   - Preserve all original content except the replaced section.
 
-If you want to create a new file, use:
-   - A new file path, including dir name if needed
-   - An empty oldString
-   - The new file's contents as newString
+To create a new file:
+   - Use an empty oldString and provide the full content as newString.
 
-Remember: when making multiple file edits in a row to the same file, you should prefer to send all edits in a single message with multiple calls to this tool, rather than multiple messages with a single call each.
+Multiple edits to the same file should be batched in a single message with multiple calls to this tool.
 `,
         parameters: {
           type: "object",
@@ -46,13 +45,12 @@ Remember: when making multiple file edits in a row to the same file, you should 
               description: "The absolute path to the file to modify (must be absolute, not relative)",
             },
             oldString: {
-              type: "number",
-              description:
-                "The text to replace (must be unique within the file, and must match the file contents exactly, including all whitespace and indentation)",
+              type: "string",
+              description: "The exact text to replace (must match file contents, including whitespace and indentation)",
             },
             newString: {
-              type: "number",
-              description: "The edited text to replace the oldString",
+              type: "string",
+              description: "The new text to insert in place of oldString",
             },
           },
           required: ["reason", "path", "oldString", "newString"],
@@ -72,9 +70,14 @@ Remember: when making multiple file edits in a row to the same file, you should 
       const originalFile = existsSync(fullFilePath) ? readFileSync(fullFilePath, "utf8") : "";
       console.log("editFileTool", reason);
 
+      // Validate oldString exists if not creating a new file
+      if (oldString && originalFile && !originalFile.includes(oldString)) {
+        throw new Error(`oldString not found in file: ${oldString}`);
+      }
+
       mkdirSync(dir, { recursive: true });
-      const { patch, updatedFile } = applyEdit(cwd, filePath, oldString, newString);
-      console.log("editFileTool", "updatedFile", updatedFile);
+      const { patch, updatedFile } = applyEdit(originalFile, oldString, newString);
+      console.log(chalk.red(patch));
       await writeFile(fullFilePath, updatedFile, { encoding: "utf8", flush: true });
 
       return {
@@ -83,6 +86,7 @@ Remember: when making multiple file edits in a row to the same file, you should 
         oldString,
         newString,
         message: `File edited successfully`,
+        patch,
       };
     } catch (error: any) {
       return { error: error.message || "Failed to edit file" };
@@ -91,38 +95,28 @@ Remember: when making multiple file edits in a row to the same file, you should 
 };
 
 export function applyEdit(
-  cwd: string,
-  filePath: string,
+  originalFile: string,
   oldString: string,
   newString: string
 ): { patch: Hunk[]; updatedFile: string } {
-  const fullFilePath = isAbsolute(filePath) ? filePath : resolve(cwd, filePath);
+  let updatedFile: string;
 
-  let originalFile;
-  let updatedFile;
   if (oldString === "") {
     // Create new file
-    originalFile = "";
     updatedFile = newString;
   } else {
     // Edit existing file
-    originalFile = readFileSync(fullFilePath, "utf-8");
-    if (newString === "") {
-      if (!oldString.endsWith("\n") && originalFile.includes(oldString + "\n")) {
-        updatedFile = originalFile.replace(oldString + "\n", () => newString);
-      } else {
-        updatedFile = originalFile.replace(oldString, () => newString);
-      }
-    } else {
-      updatedFile = originalFile.replace(oldString, () => newString);
+    if (!originalFile.includes(oldString)) {
+      throw new Error("oldString not found in file");
     }
+    updatedFile = originalFile.replace(oldString, newString);
     if (updatedFile === originalFile) {
-      throw new Error("Original and edited file match exactly. Failed to apply edit.");
+      throw new Error("No changes applied; oldString matched but replacement failed");
     }
   }
 
   const patch = getPatch({
-    filePath: filePath,
+    filePath: "file",
     fileContents: originalFile,
     oldStr: originalFile,
     newStr: updatedFile,
@@ -132,7 +126,6 @@ export function applyEdit(
 }
 
 const AMPERSAND_TOKEN = "<<:AMPERSAND_TOKEN:>>";
-
 const DOLLAR_TOKEN = "<<:DOLLAR_TOKEN:>>";
 
 export function getPatch({
@@ -150,20 +143,14 @@ export function getPatch({
     filePath,
     filePath,
     fileContents.replaceAll("&", AMPERSAND_TOKEN).replaceAll("$", DOLLAR_TOKEN),
-    fileContents
-      .replaceAll("&", AMPERSAND_TOKEN)
-      .replaceAll("$", DOLLAR_TOKEN)
-      .replace(
-        oldStr.replaceAll("&", AMPERSAND_TOKEN).replaceAll("$", DOLLAR_TOKEN),
-        newStr.replaceAll("&", AMPERSAND_TOKEN).replaceAll("$", DOLLAR_TOKEN)
-      ),
+    newStr.replaceAll("&", AMPERSAND_TOKEN).replaceAll("$", DOLLAR_TOKEN),
     undefined,
     undefined,
     { context: 3 }
   )
-    .hunks.filter(_ => _?.lines?.length > 0)
-    .map(_ => ({
-      ..._,
-      lines: _.lines.map(_ => _.replaceAll(AMPERSAND_TOKEN, "&").replaceAll(DOLLAR_TOKEN, "$")),
+    .hunks.filter(h => h?.lines?.length > 0)
+    .map(h => ({
+      ...h,
+      lines: h.lines.map(l => l.replaceAll(AMPERSAND_TOKEN, "&").replaceAll(DOLLAR_TOKEN, "$")),
     }));
 }

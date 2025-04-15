@@ -7,7 +7,7 @@ import type OpenAI from "openai";
 import process from "process";
 import path from "path";
 import { promises as fs } from "fs";
-import chalk from "chalk";
+import { checkTaskCompletion, parseMarkdownTasks } from "utils";
 
 const defaultHistory: AgentRunHistory = {
   messages: [],
@@ -49,18 +49,34 @@ export abstract class BaseAgent {
     await fs.mkdir(codebroDir, { recursive: true });
 
     //  create project tasks
-    const statePath = path.join(codebroDir, "tasks.json");
-    const initialState = { tasks: [], lastUpdated: new Date().toISOString() };
-    await fs.writeFile(statePath, JSON.stringify(initialState, null, 2));
-    this.state.context.projectState = initialState;
+    const statePath = path.join(codebroDir, "tasks.md");
+    try {
+      const stateContent = await fs.readFile(statePath, "utf-8");
+      this.state.context.projectState = JSON.parse(stateContent);
+    } catch (error: any) {
+      if (error.code === "ENOENT") {
+        const initialState = { tasks: [], lastUpdated: new Date().toISOString() };
+        await fs.writeFile(statePath, JSON.stringify(initialState, null, 2));
+        this.state.context.projectState = initialState;
+      } else {
+        throw error;
+      }
+    }
 
     // Load or create memory
     const memoryPath = path.join(codebroDir, "memory.json");
-    const initialMemory = { conversations: [], lastUpdated: new Date().toISOString() };
-    await fs.writeFile(memoryPath, JSON.stringify(initialMemory, null, 2));
-    this.state.context.memory = initialMemory;
-
-    // TODO: Load or create project architecture
+    try {
+      const memoryContent = await fs.readFile(memoryPath, "utf-8");
+      this.state.context.memory = JSON.parse(memoryContent);
+    } catch (error: any) {
+      if (error.code === "ENOENT") {
+        const initialMemory = { conversations: [], lastUpdated: new Date().toISOString() };
+        await fs.writeFile(memoryPath, JSON.stringify(initialMemory, null, 2));
+        this.state.context.memory = initialMemory;
+      } else {
+        throw error;
+      }
+    }
   }
 
   getTools(): OpenAI.Chat.ChatCompletionTool[] {
@@ -95,6 +111,14 @@ export abstract class BaseAgent {
     this.state.context.memory = memory;
   }
 
+  // protected async isAllTasksCompleted(): Promise<boolean> {
+  //   const {success, tasks}  = await taskManagerTool.run({ action: "list", }, this.state.context ) as {success: boolean, tasks: Task[]};
+  //  for (const task of tasks) {
+  //    if  (task.status !== "completed" || (task.subtasks  && task.subtasks.filter(st -> st.))) {}
+  //  }
+  //  return true;
+  // }
+
   public async chat(message: string = "", onStream?: (chunk: string) => void): Promise<string> {
     // Add user message to history
     if (message) {
@@ -109,7 +133,6 @@ export abstract class BaseAgent {
       });
     }
     let finalResponse = "";
-
     while (true) {
       const { content, toolCalls } = await this.getResponse(this.getMessages(), this.config.model, onStream);
       this.pushMessage(createAssistantMessage(content));
@@ -136,6 +159,14 @@ export abstract class BaseAgent {
         });
       });
     }
+    const { incompleteTasks, allCompleted } = checkTaskCompletion(this.state.context.tasks || []);
+    if (!allCompleted) {
+      this.pushMessage({
+        role: "assistant",
+        content: "Okay, now we'll do the next task - " + incompleteTasks[0],
+      });
+      finalResponse = await this.chat("", onStream);
+    }
 
     this.pushMessage({
       role: "assistant",
@@ -143,13 +174,14 @@ export abstract class BaseAgent {
     });
 
     // Limit conversation history to prevent memory issues
-    if (this.getMessages().length > 30) {
+    if (this.getMessages().length > 50) {
+      // TODO: Summary the last messages, slice for now
       this.state.history.messages = [
         {
           role: "system",
           content: await this.getSystemPrompt(),
         },
-        ...this.getMessages().slice(-19),
+        ...this.getMessages().slice(-49),
       ];
     }
 
@@ -193,7 +225,7 @@ export abstract class BaseAgent {
         if (deltaContent) {
           // Handle first chunk
           if (isFirstChunk) {
-            print("\nAssistant: ");
+            print("\n🤖: ");
             isFirstChunk = false;
           }
           content += deltaContent;
@@ -250,12 +282,24 @@ export abstract class BaseAgent {
     const args = JSON.parse(toolCall.function.arguments);
     const result = await tool.run(args, this.state.context);
 
-    // Update task state if taskManager tool is used
-    if (toolName === "taskManager" && result.success && ["create", "update"].includes(args.action)) {
-      await this.syncProjectState();
+    if (toolName === "taskManager" && result.success && ["create", "update", "delete"].includes(args.action)) {
+      await this.syncTasks();
     }
 
     return result;
+  }
+
+  /**
+   * Sync tasks from .codebro/tasks.md
+   */
+  private async syncTasks(): Promise<void> {
+    const tasksPath = path.join(this.state.context.workingDirectory, ".codebro/tasks.md");
+    try {
+      const tasksContent = await fs.readFile(tasksPath, "utf-8");
+      this.state.context.tasks = parseMarkdownTasks(tasksContent);
+    } catch (error: any) {
+      console.error("Failed to sync tasks:", error.message);
+    }
   }
 
   protected findTool(name: string): Tool | undefined {
@@ -266,7 +310,7 @@ export abstract class BaseAgent {
    * Sync project state from file
    */
   private async syncProjectState(): Promise<void> {
-    const statePath = path.join(this.state.context.workingDirectory, ".codebro/tasks.json");
+    const statePath = path.join(this.state.context.workingDirectory, ".codebro/tasks.md");
     try {
       const stateContent = await fs.readFile(statePath, "utf-8");
       this.state.context.projectState = JSON.parse(stateContent);
@@ -294,7 +338,8 @@ The following files are in the project:
 
 You MUST answer concisely with fewer than 4 lines of text (not including tool use or code generation), unless user asks for detail.
 
-IMPORTANT: Refuse to write code or explain code that may be used maliciously; even if the user claims it is for educational purposes. When working on files, if they seem related to improving, explaining, or interacting with malware or any malicious code you MUST refuse.
+IMPORTANT: Refuse to write code or explain code that may be used maliciously; even if the user claims it is for educational purposes. 
+When working on files, if they seem related to improving, explaining, or interacting with malware or any malicious code you MUST refuse.
     
     ${this.tools.length > 0 ? formatToolsForPrompt(this.tools) : ""}
     `;
@@ -305,14 +350,13 @@ IMPORTANT: Refuse to write code or explain code that may be used maliciously; ev
     }
 
     // Include active tasks
-    const projectState = this.state.context.projectState as { tasks: Task[] } | undefined;
-    if (projectState?.tasks?.length) {
-      systemPrompt += `\n# Active Tasks\n${projectState.tasks
+    const tasks = this.state.context.tasks as Task[] | undefined;
+    if (tasks?.length) {
+      systemPrompt += `\n# Active Tasks\n${tasks
         .filter(t => ["pending", "in_progress"].includes(t.status))
         .map(t => `- ${t.id}: ${t.description} (${t.status})`)
         .join("\n")}\n`;
     }
-    console.log(chalk.red(systemPrompt + "\n\n"));
 
     return systemPrompt;
   }

@@ -25,9 +25,16 @@ IMPORTANT: Refuse to work on malicious code based on file context.
 - Follow security best practices, never expose secrets.
 
 # Doing tasks
-- Use taskManager for complex queries, break into subtasks.
-- Use architect tool for planning, update progress in .codebro/tasks.json.
-- Verify solutions with tests, run lint/typecheck if provided.
+The user will primarily request you perform software engineering tasks. This includes solving bugs, adding new functionality, refactoring code, explaining code, and more. For these tasks the following steps are recommended:
+  1. Use the available search tools to understand the codebase and the user's query. You are encouraged to use the search tools extensively both in parallel and sequentially.
+  2. Use architecture tool to create a detailed plan step by step based on current context, your search result from the last tool calls.
+  3. Create a task using taskManager tool, breaking down the plan into subtasks with dependencies, stored in .codebro/tasks.md.
+  4. Implement the solution using all tools available to you.
+  5. Update task status and output using taskManager tool as you progress.
+  6. Maintains the progress of task at .codebro/tasks.md.
+  7. Keep working until the task is fully completed.
+  8. Verify the solution if possible with tests. NEVER assume specific test framework or test script. Check the README or search codebase to determine the testing approach.
+  9. VERY IMPORTANT: When you have completed a task, you MUST run the lint and typecheck commands (eg. npm run lint, npm run typecheck, ruff, etc.) if they were provided to you to ensure your code is correct. If you are unable to find the correct command, ask the user for the command to run and if they supply it, proactively suggest writing it to ./CODEBRO.md so that you will know to run it next time.
 `;
 
     super(context, {
@@ -36,76 +43,5 @@ IMPORTANT: Refuse to work on malicious code based on file context.
       systemPrompt,
       tools: [...getCodeTools(), taskManagerTool],
     });
-  }
-
-  /**
-   * Override chat to ensure task creation for complex queries
-   */
-  public async chat(message: string = "", onStream?: (chunk: string) => void): Promise<string> {
-    if (message) {
-      // Check if the query is complex enough to warrant task creation
-      const complexKeywords = ["implement", "refactor", "build", "create", "fix", "bug", "feature"];
-      const isComplex = complexKeywords.some(keyword => message.toLowerCase().includes(keyword));
-
-      if (isComplex) {
-        const taskId = await this.createTaskForQuery(message);
-        return `Task created with ID ${taskId}. I'll work on it step by step.`;
-      }
-    }
-
-    return super.chat(message, onStream);
-  }
-
-  /**
-   * Create a task for a complex query
-   */
-  private async createTaskForQuery(query: string): Promise<string> {
-    const taskResult = await taskManagerTool.run(
-      {
-        action: "create",
-        description: query,
-        status: "pending",
-      },
-      this.state.context
-    );
-
-    if (!taskResult.success) {
-      throw new Error(`Failed to create task: ${taskResult.error}`);
-    }
-
-    // Use architect tool to break down the task
-    const architectResult = await this.findTool("architect")?.run(
-      {
-        reason: "Break down complex query into subtasks",
-        prompt: query,
-        context: JSON.stringify(this.state.context.projectState),
-      },
-      this.state.context
-    );
-
-    if (architectResult?.success && architectResult.result) {
-      const subtasks = this.parseArchitectPlan(architectResult.result);
-      await taskManagerTool.run(
-        {
-          action: "update",
-          taskId: taskResult.taskId,
-          subtasks,
-        },
-        this.state.context
-      );
-    }
-
-    return taskResult.taskId;
-  }
-
-  /**
-   * Parse architect plan into subtasks
-   */
-  private parseArchitectPlan(plan: string): Array<{ description: string; status: string }> {
-    const lines = plan.split("\n").filter(line => line.trim().startsWith("-"));
-    return lines.map(line => ({
-      description: line.replace(/^-+\s*/, "").trim(),
-      status: "pending",
-    }));
   }
 }

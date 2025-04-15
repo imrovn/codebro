@@ -2,6 +2,7 @@ import type { Tool } from "tools/tools.types.ts";
 import type OpenAI from "openai";
 import type { Context } from "types";
 import axios from "axios";
+import { OraManager } from "utils/ora-manager";
 
 /**
  * Fetch content from a URL
@@ -16,10 +17,6 @@ export const fetchUrlTool: Tool = {
         parameters: {
           type: "object",
           properties: {
-            reason: {
-              type: "string",
-              description: "Reason for executing this tool",
-            },
             url: {
               type: "string",
               description: "The URL to fetch content from",
@@ -37,7 +34,7 @@ export const fetchUrlTool: Tool = {
               description: "Data to send with POST/PUT requests",
             },
           },
-          required: ["reason", "url"],
+          required: ["url"],
           additionalProperties: false,
         },
       },
@@ -45,8 +42,9 @@ export const fetchUrlTool: Tool = {
   },
 
   async run(args, context: Context): Promise<any> {
-    const { reason, url, method = "GET", headers = {}, data } = args;
-    console.log("fetchUrlTool", reason);
+    const oraManager = new OraManager();
+    oraManager.start("Fetching URL...");
+    const { url, method = "GET", headers = {}, data } = args;
     try {
       const response = await axios({
         url,
@@ -56,7 +54,7 @@ export const fetchUrlTool: Tool = {
         timeout: 10000, // 10 seconds timeout
         maxContentLength: 1024 * 1024 * 2, // 2MB max
       });
-
+      oraManager.succeed("URL fetched successfully.");
       return {
         status: response.status,
         statusText: response.statusText,
@@ -65,6 +63,7 @@ export const fetchUrlTool: Tool = {
         url,
       };
     } catch (error: any) {
+      oraManager.fail(error.message || "Failed to fetch URL");
       return {
         error: error.message || "Failed to fetch URL",
         status: error.response?.status,

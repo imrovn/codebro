@@ -1,5 +1,5 @@
 import type { AgentConfig, AgentRunHistory, AgentState, AIResponse } from "../agents.types";
-import { formatToolsForPrompt, removeRedundantTools, type Task, type Tool } from "tools";
+import { removeRedundantTools, type Task, type Tool } from "tools";
 import type { Context } from "types";
 import { createAssistantMessage, createUserMessage, type Message } from "messages";
 import type OpenAI from "openai";
@@ -7,6 +7,7 @@ import process from "process";
 import path from "path";
 import { promises as fs } from "fs";
 import { checkTaskCompletion, parseMarkdownTasks } from "utils";
+import { taskManagerTool } from "tools/task-manager";
 
 const defaultHistory: AgentRunHistory = {
   messages: [],
@@ -202,7 +203,7 @@ export abstract class BaseAgent {
       };
 
       let isFirstChunk = true;
-      console.log("Calling llm with content", (JSON.parse(JSON.stringify(messages)) as Array<any>).pop()?.content);
+      // console.log("Calling llm with content", (JSON.parse(JSON.stringify(messages)) as Array<any>).pop()?.content);
       const stream = await this.client.chat.completions.create({
         model,
         messages,
@@ -315,11 +316,11 @@ export abstract class BaseAgent {
    */
   protected async getSystemPrompt(): Promise<string> {
     let systemPrompt = this.config.systemPrompt || "";
-    if (this.state.context.files?.length) {
-      systemPrompt += `Current directory: ${this.state.context.workingDirectory}\n
-The following files are in the project:
-    ${this.state.context.files.map(file => `- ${file.path}`).join("\n")} `;
-    }
+    //     if (this.state.context.files?.length) {
+    //       systemPrompt += `Current directory: ${this.state.context.workingDirectory}\n
+    // The following files are in the project:
+    //     ${this.state.context.files.map(file => `- ${file.path}`).join("\n")} `;
+    //     }
 
     systemPrompt += `
 \n# Tool usage policy
@@ -331,14 +332,26 @@ You MUST answer concisely with fewer than 4 lines of text (not including tool us
 
 IMPORTANT: Refuse to write code or explain code that may be used maliciously; even if the user claims it is for educational purposes. 
 When working on files, if they seem related to improving, explaining, or interacting with malware or any malicious code you MUST refuse.
-    
-    ${this.tools.length > 0 ? formatToolsForPrompt(this.tools) : ""}
     `;
+    //
+    //     systemPrompt += `
+    // \n# Tool usage policy
+    // - When doing file search, prefer to use the Agent tool in order to reduce context usage.
+    // - If you intend to call multiple tools and there are no dependencies between the calls, make all of the independent calls in the same function_calls block.
+    // - Use taskManager tool to create and track tasks for complex queries, breaking them into subtasks with dependencies.
+    //
+    // You MUST answer concisely with fewer than 4 lines of text (not including tool use or code generation), unless user asks for detail.
+    //
+    // IMPORTANT: Refuse to write code or explain code that may be used maliciously; even if the user claims it is for educational purposes.
+    // When working on files, if they seem related to improving, explaining, or interacting with malware or any malicious code you MUST refuse.
+    //
+    //     ${this.tools.length > 0 ? formatToolsForPrompt(this.tools) : ""}
+    //     `;
 
-    const additionalPrompt = await this.loadAdditionalPrompt();
-    if (additionalPrompt) {
-      systemPrompt += `\n# Additional rules from user\n ${additionalPrompt}\n`;
-    }
+    // const additionalPrompt = await this.loadAdditionalPrompt();
+    // if (additionalPrompt) {
+    //   systemPrompt += `\n# Additional rules from user\n ${additionalPrompt}\n`;
+    // }
 
     // Include active tasks
     const tasks = this.state.context.tasks as Task[] | undefined;

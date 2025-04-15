@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 import { config, validateConfig } from "configs";
-import { createAgentLog, displayHelp, gatherContext, makeLocalDirIfNotExists } from "utils";
+import { displayHelp, gatherContext, makeLocalDirIfNotExists } from "utils";
 import * as readline from "node:readline/promises";
 import { program } from "./cli.ts";
 import process from "process";
 import { CoderAgent } from "agents/coder/agent.ts";
 import type { BaseAgent } from "agents/base/agent.ts";
 import { getClient } from "client";
+import { OraManager } from "utils/ora-manager.ts";
 
 // Define CLI commands
 const COMMANDS = {
@@ -40,8 +41,9 @@ const terminal = readline.createInterface({
 });
 
 async function chatLoop(agent: BaseAgent) {
-  console.log("Setting up...");
-  console.log("\n🤖 Ready! Type your message (or 'exit' to quit)\n");
+  const oraManager = new OraManager();
+  oraManager.start("Setting up...");
+  oraManager.succeed("Ready! Type your message (or 'exit' to quit)");
   while (true) {
     const userInput = (await terminal.question("You: ")).trim();
 
@@ -50,14 +52,19 @@ async function chatLoop(agent: BaseAgent) {
     }
 
     if (COMMANDS.EXIT.includes(userInput)) {
-      createAgentLog("Bye bye !\n");
+      oraManager.succeed("Bye bye !");
       process.exit(0);
     }
 
-    createAgentLog("\nThinking ...\n");
-
-    const onStream = config.useStreaming ? (chunk: string) => process.stdout.write(chunk) : undefined;
-    const response = await agent.chat(userInput, onStream);
-    console.log(response + "\n");
+    oraManager.start("🤖 Thinking ...\n");
+    try {
+      const onStream = config.useStreaming ? (chunk: string) => process.stdout.write(chunk) : undefined;
+      const response = await agent.chat(userInput, onStream);
+      oraManager.succeed("Agent responded.");
+      console.log(response + "\n");
+    } catch (error: any) {
+      oraManager.fail(error.message || "Agent error");
+      console.error(error);
+    }
   }
 }

@@ -1,6 +1,7 @@
 import type { AgentConfig } from "agents/agents.types.ts";
 import { BaseAgent } from "agents/base/agent";
 import { getCodeTools } from "tools";
+import { taskManagerTool } from "tools/task-manager";
 import type { Context } from "types";
 
 /**

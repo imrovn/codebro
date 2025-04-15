@@ -5,7 +5,7 @@ import { dirname, isAbsolute, resolve } from "node:path";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { type Hunk, structuredPatch } from "diff";
-import chalk from "chalk";
+import { OraManager } from "utils/ora-manager";
 
 /**
  * Edit file in the project
@@ -36,10 +36,6 @@ Multiple edits to the same file should be batched in a single message with multi
         parameters: {
           type: "object",
           properties: {
-            reason: {
-              type: "string",
-              description: "Reason for executing this tool",
-            },
             path: {
               type: "string",
               description: "The absolute path to the file to modify (must be absolute, not relative)",
@@ -53,7 +49,7 @@ Multiple edits to the same file should be batched in a single message with multi
               description: "The new text to insert in place of oldString",
             },
           },
-          required: ["reason", "path", "oldString", "newString"],
+          required: ["path", "oldString", "newString"],
           additionalProperties: false,
         },
       },
@@ -61,25 +57,27 @@ Multiple edits to the same file should be batched in a single message with multi
   },
 
   async run(args, context: Context): Promise<any> {
-    const { reason, path: filePath, oldString, newString } = args;
+    const { path: filePath, oldString, newString } = args;
     const cwd = context.workingDirectory;
-
+    const oraManager = new OraManager();
+    oraManager.start("Editing file...");
     try {
       const fullFilePath = isAbsolute(filePath) ? filePath : resolve(cwd, filePath);
       const dir = dirname(fullFilePath);
       const originalFile = existsSync(fullFilePath) ? readFileSync(fullFilePath, "utf8") : "";
-      console.log("editFileTool", reason);
 
       // Validate oldString exists if not creating a new file
       if (oldString && originalFile && !originalFile.includes(oldString)) {
+        oraManager.fail(`oldString not found in file: ${oldString}`);
         throw new Error(`oldString not found in file: ${oldString}`);
       }
 
+      oraManager.update("Applying patch...");
       mkdirSync(dir, { recursive: true });
       const { patch, updatedFile } = applyEdit(originalFile, oldString, newString);
-      console.log(chalk.red(patch));
       await writeFile(fullFilePath, updatedFile, { encoding: "utf8", flush: true });
 
+      oraManager.succeed("File edited successfully.");
       return {
         success: true,
         path: filePath,
@@ -89,6 +87,7 @@ Multiple edits to the same file should be batched in a single message with multi
         patch,
       };
     } catch (error: any) {
+      oraManager.fail(error.message || "Failed to edit file");
       return { error: error.message || "Failed to edit file" };
     }
   },

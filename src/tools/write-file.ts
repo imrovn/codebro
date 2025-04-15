@@ -3,6 +3,7 @@ import type OpenAI from "openai";
 import type { Context } from "types";
 import path from "node:path";
 import fs from "node:fs";
+import { OraManager } from "utils/ora-manager";
 
 /**
  * Write file to the project
@@ -21,10 +22,6 @@ Before using this tool:
         parameters: {
           type: "object",
           properties: {
-            reason: {
-              type: "string",
-              description: "Reason for executing this tool",
-            },
             path: {
               type: "string",
               description: "Path to the file, relative to the project root",
@@ -38,7 +35,7 @@ Before using this tool:
               description: "Whether to create parent directories if they don't exist",
             },
           },
-          required: ["reason", "path", "content"],
+          required: ["path", "content"],
           additionalProperties: false,
         },
       },
@@ -46,8 +43,9 @@ Before using this tool:
   },
 
   async run(args, context: Context): Promise<any> {
-    const { reason, path: filePath, content, createDirs = true } = args;
-    console.log("writeFileTool", reason);
+    const { path: filePath, content, createDirs = true } = args;
+    const oraManager = new OraManager();
+    oraManager.start(`Writing file: ${filePath}`);
     const cwd = context.workingDirectory;
     const absolutePath = path.resolve(cwd, filePath);
 
@@ -60,14 +58,15 @@ Before using this tool:
 
       // Write content to file
       fs.writeFileSync(absolutePath, content, "utf-8");
-
+      oraManager.succeed(`File written successfully: ${filePath}`);
       return {
         success: true,
         path: filePath,
-        message: `File written successfully`,
+        message: `File written successfully: ${filePath}`,
       };
     } catch (error: any) {
-      return { error: error.message || "Failed to write file" };
+      oraManager.fail(`Failed to write file: ${filePath} (${error.message || error})`);
+      return { error: error.message || `Failed to write file: ${filePath}` };
     }
   },
 };

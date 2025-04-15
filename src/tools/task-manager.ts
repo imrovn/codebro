@@ -5,6 +5,7 @@ import { promises as fs } from "node:fs";
 import { v4 as uuidv4 } from "uuid";
 import type { Task, Tool } from "./tools.types";
 import { createErrorLog, parseMarkdownTasks, writeMarkdownTasks } from "utils";
+import { OraManager } from "utils/ora-manager";
 
 /**
  * Task Manager Tool: Manages tasks and subtasks, persists state in .codebro/tasks.json
@@ -84,23 +85,31 @@ Only delete tasks when user ask, otherwise keep track the progress.
   },
 
   async run(args, context: Context): Promise<any> {
+    const oraManager = new OraManager();
     const { action, taskId, description, status, subtasks } = args;
     const tasksPath = path.join(context.workingDirectory, ".codebro/tasks.md");
-
+    oraManager.start(`Task Manager: ${action} action in progress...`);
+    // (Removed duplicate destructure and tasksPath declaration)
     try {
+      oraManager.update("Reading tasks...");
       let tasks: Task[] = [];
       try {
         const tasksContent = await fs.readFile(tasksPath, "utf-8");
         tasks = parseMarkdownTasks(tasksContent);
       } catch (error: any) {
         if (error.code !== "ENOENT") {
+          oraManager.fail("Failed to read tasks file.");
           return createErrorLog(error);
         }
       }
 
       switch (action) {
         case "create": {
-          if (!description) return getErrorResponse("Description required for task creation");
+          if (!description) {
+            oraManager.fail("Description required for task creation");
+            return getErrorResponse("Description required for task creation");
+          }
+          oraManager.update("Creating new task...");
           const newTask: Task = {
             id: `task-${uuidv4()}`,
             description,
@@ -113,14 +122,25 @@ Only delete tasks when user ask, otherwise keep track the progress.
           };
           tasks.push(newTask);
           await writeMarkdownTasks(tasksPath, tasks);
+          oraManager.succeed("Task created successfully!");
           return { success: true, taskId: newTask.id, message: "Task created" };
         }
         case "update": {
-          if (!taskId) return getErrorResponse("Task ID required for update");
+          if (!taskId) {
+            oraManager.fail("Task ID required for update");
+            return getErrorResponse("Task ID required for update");
+          }
+          oraManager.update("Updating task...");
           const taskIndex = tasks.findIndex(t => t.id === taskId);
-          if (taskIndex === -1) return getErrorResponse("Task not found");
+          if (taskIndex === -1) {
+            oraManager.fail("Task not found");
+            return getErrorResponse("Task not found");
+          }
           const task = tasks[taskIndex];
-          if (!task) return getErrorResponse("Task not found");
+          if (!task) {
+            oraManager.fail("Task not found");
+            return getErrorResponse("Task not found");
+          }
           task.description = description || task.description;
           task.status = status || task.status;
           task.subtasks =
@@ -131,27 +151,44 @@ Only delete tasks when user ask, otherwise keep track the progress.
             })) || task.subtasks;
           tasks[taskIndex] = task;
           await writeMarkdownTasks(tasksPath, tasks);
+          oraManager.succeed("Task updated successfully!");
           return { success: true, message: "Task updated" };
         }
         case "get": {
-          if (!taskId) return getErrorResponse("Task ID required");
+          if (!taskId) {
+            oraManager.fail("Task ID required");
+            return getErrorResponse("Task ID required");
+          }
+          oraManager.update("Getting task...");
           const task = tasks.find(t => t.id === taskId);
-          if (!task) return getErrorResponse("Task not found");
+          if (!task) {
+            oraManager.fail("Task not found");
+            return getErrorResponse("Task not found");
+          }
+          oraManager.succeed("Task retrieved.");
           return { success: true, task };
         }
         case "list": {
+          oraManager.succeed("Tasks listed.");
           return { success: true, tasks };
         }
         case "delete": {
-          if (!taskId) return getErrorResponse("Task ID required");
+          if (!taskId) {
+            oraManager.fail("Task ID required");
+            return getErrorResponse("Task ID required");
+          }
+          oraManager.update("Deleting task...");
           tasks = tasks.filter(t => t.id !== taskId);
           await writeMarkdownTasks(tasksPath, tasks);
+          oraManager.succeed("Task deleted successfully!");
           return { success: true, message: "Task deleted" };
         }
         default:
+          oraManager.fail("Invalid action");
           return getErrorResponse("Invalid action");
       }
     } catch (error: any) {
+      oraManager.fail(error.message || "Task management failed");
       return { success: false, error: error.message || "Task management failed" };
     }
   },

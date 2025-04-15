@@ -4,6 +4,8 @@ import type { Context } from "types";
 import path from "node:path";
 import * as child_process from "node:child_process";
 import * as util from "node:util";
+import { OraManager } from "utils/ora-manager";
+
 // Promisify exec
 const execAsync = util.promisify(child_process.exec);
 /**
@@ -19,10 +21,6 @@ export const executeCommandTool: Tool = {
         parameters: {
           type: "object",
           properties: {
-            reason: {
-              type: "string",
-              description: "Reason for executing this tool",
-            },
             command: {
               type: "string",
               description: "The command to execute",
@@ -36,7 +34,7 @@ export const executeCommandTool: Tool = {
               description: "Timeout in milliseconds. Defaults to 30000 (30 seconds).",
             },
           },
-          required: ["reason", "command"],
+          required: [ "command"],
           additionalProperties: false,
         },
       },
@@ -44,23 +42,26 @@ export const executeCommandTool: Tool = {
   },
 
   async run(args, context: Context): Promise<any> {
-    const { reason, command, workingDir = ".", timeout = 30000 } = args;
-    console.log("executeCommandTool", reason);
+    const oraManager = new OraManager();
+    oraManager.start("Executing command...");
+    const { command, workingDir = ".", timeout = 30000 } = args;
     const cwd = path.resolve(context.workingDirectory, workingDir);
 
     // Security check - don't allow dangerous commands
     if (isForbiddenCommand(command)) {
+      oraManager.fail("Command rejected for security reasons");
       return { error: "Command rejected for security reasons" };
     }
 
     try {
-      // Execute the command with timeout
+      oraManager.update("Running shell command...");
       const { stdout, stderr } = await execAsync(command, {
         cwd,
         timeout,
         shell: "/bin/bash",
       });
 
+      oraManager.succeed("Command executed.");
       return {
         stdout: stdout.trim(),
         stderr: stderr.trim(),
@@ -68,6 +69,7 @@ export const executeCommandTool: Tool = {
         workingDir,
       };
     } catch (error: any) {
+      oraManager.fail(error.message || "Command execution failed");
       return {
         error: error.message || "Command execution failed",
         stderr: error.stderr,

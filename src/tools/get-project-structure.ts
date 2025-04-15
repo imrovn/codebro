@@ -3,6 +3,7 @@ import type OpenAI from "openai";
 import type { Context } from "types";
 import path from "node:path";
 import fs from "node:fs";
+import { OraManager } from "utils/ora-manager";
 
 /**
  * Get project structure
@@ -17,10 +18,6 @@ export const projectStructureTool: Tool = {
         parameters: {
           type: "object",
           properties: {
-            reason: {
-              type: "string",
-              description: "Reason for executing this tool",
-            },
             directory: {
               type: "string",
               description: "The directory to get the structure for. Defaults to current directory.",
@@ -42,8 +39,11 @@ export const projectStructureTool: Tool = {
   },
 
   async run(args, context: Context): Promise<any> {
-    const { reason = "", directory = "", depth = 3, exclude = "node_modules,.git,dist,build" } = args;
-    console.log("projectStructureTool", reason);
+    const { directory = "", depth = 3, exclude = "node_modules,.git,dist,build" } = args;
+    const oraManager = new OraManager();
+    oraManager.start(
+      `Getting project structure for '${directory || "."}' with depth ${depth} (excluding: ${exclude})...`
+    );
     const cwd = context.workingDirectory;
     const targetDir = path.resolve(cwd, directory);
     const excludePatterns = exclude.split(",").map((p: string) => p.trim());
@@ -51,15 +51,18 @@ export const projectStructureTool: Tool = {
     try {
       // Check if directory exists
       if (!fs.existsSync(targetDir)) {
+        oraManager.fail(`Directory not found: '${targetDir}'`);
         return { error: `Directory not found: ${targetDir}` };
       }
 
       // Get directory structure recursively
       const structure = getDirStructure(targetDir, depth, excludePatterns);
+      oraManager.succeed(`Project structure retrieved for '${directory || "."}' with depth ${depth}.`);
       return { structure };
     } catch (error: any) {
+      oraManager.fail(`Failed to get project structure for '${directory || "."}': ${error.message || error}`);
       return {
-        error: error.message || "Failed to get project structure",
+        error: error.message || `Failed to get project structure for: ${directory || "."}`,
       };
     }
   },

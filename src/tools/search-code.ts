@@ -3,6 +3,7 @@ import type OpenAI from "openai";
 import type { Context } from "types";
 import * as child_process from "node:child_process";
 import * as util from "node:util";
+import { OraManager } from "utils/ora-manager";
 // Promisify exec
 const execAsync = util.promisify(child_process.exec);
 /**
@@ -18,10 +19,6 @@ export const searchCodeTool: Tool = {
         parameters: {
           type: "object",
           properties: {
-            reason: {
-              type: "string",
-              description: "Reason for executing this tool",
-            },
             query: {
               type: "string",
               description: "The search query or pattern to look for",
@@ -43,8 +40,11 @@ export const searchCodeTool: Tool = {
   },
 
   async run(args, context: Context): Promise<any> {
-    const { reason, query, filePattern = "", caseSensitive } = args;
-    console.log("searchCodeTool", reason);
+    const { query, filePattern = "", caseSensitive } = args;
+    const oraManager = new OraManager();
+    oraManager.start(
+      `Searching for '${query}' in ${filePattern || "all files"} (case ${caseSensitive ? "sensitive" : "insensitive"})...`
+    );
     const cwd = context.workingDirectory;
 
     try {
@@ -55,6 +55,7 @@ export const searchCodeTool: Tool = {
       const { stdout, stderr } = await execAsync(cmd, { cwd });
 
       if (stderr) {
+        oraManager.fail(`Search failed: ${stderr}`);
         return { error: stderr };
       }
 
@@ -68,6 +69,13 @@ export const searchCodeTool: Tool = {
           return { file, content };
         });
 
+      if (results.length === 0) {
+        oraManager.succeed(`No matches found for '${query}' in ${filePattern || "all files"}.`);
+      } else {
+        oraManager.succeed(
+          `Search completed: Found ${results.length} match${results.length === 1 ? "" : "es"} for '${query}' in ${filePattern || "all files"}.`
+        );
+      }
       return {
         count: results.length,
         results,
@@ -75,6 +83,7 @@ export const searchCodeTool: Tool = {
     } catch (error: any) {
       // If grep returns no matches, it will exit with code 1
       if (error.code === 1 && !error.stderr) {
+        oraManager.succeed(`No matches found for '${query}' in ${filePattern || "all files"}.`);
         return { count: 0, results: [] };
       }
 

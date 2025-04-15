@@ -2,6 +2,7 @@ import type { Tool } from "tools/tools.types.ts";
 import type OpenAI from "openai";
 import type { Context } from "types";
 import { callLlm } from "utils/llm.ts";
+import { OraManager } from "utils/ora-manager.ts";
 
 /**
  * Fetch content from a URL
@@ -18,10 +19,6 @@ export const architectTool: Tool = {
         parameters: {
           type: "object",
           properties: {
-            reason: {
-              type: "string",
-              description: "Reason for executing this tool",
-            },
             prompt: {
               type: "string",
               description: "The technical request or coding task to analyze",
@@ -31,7 +28,7 @@ export const architectTool: Tool = {
               description: "Optional context from previous conversation or system state",
             },
           },
-          required: ["reason", "prompt"],
+          required: ["prompt"],
           additionalProperties: false,
         },
       },
@@ -39,8 +36,9 @@ export const architectTool: Tool = {
   },
 
   async run(args, context: Context): Promise<any> {
-    console.log("Planning...");
-    const { reason, path: prompt, context: conversationContext } = args;
+    const oraManager = new OraManager();
+    oraManager.start("Planning architecture...");
+    const { path: prompt, context: conversationContext } = args;
     try {
       const systemPrompt = `
       You are an expert software architect. Your role is to analyze technical requirements and produce clear, actionable implementation plans.
@@ -67,14 +65,17 @@ Task: Initialize Game Environment
 - Set up curses screen
 - Configure terminal settings
       `;
+      const result = await callLlm(
+        systemPrompt,
+        conversationContext ? `<context>${conversationContext}</context>\n\n${prompt}` : prompt
+      );
+      oraManager.succeed("Plan generated.");
       return {
         success: true,
-        result: await callLlm(
-          systemPrompt,
-          conversationContext ? `<context>${conversationContext}</context>\n\n${prompt}` : prompt
-        ),
+        result,
       };
     } catch (error: any) {
+      oraManager.fail("Error when planning.");
       return {
         success: false,
         result: `Error when planning: ${error instanceof Error ? error.message : "Unknown error"}`,

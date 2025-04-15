@@ -24,6 +24,7 @@
     "@types/diff": "^7.0.2",
     "@types/node": "^20.11.30",
     "diff": "^7.0.0",
+    "ora": "^8.2.0",
     "oxlint": "^0.16.5",
     "prettier": "^3.5.3",
     "typescript": "^5.3.3"

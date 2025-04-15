@@ -3,6 +3,7 @@ import type OpenAI from "openai";
 import type { Context } from "types";
 import path from "node:path";
 import fs from "node:fs";
+import { OraManager } from "utils/ora-manager";
 
 /**
  * Read file from the project
@@ -21,10 +22,6 @@ export const readFileTool: Tool = {
         parameters: {
           type: "object",
           properties: {
-            reason: {
-              type: "string",
-              description: "Reason for executing this tool",
-            },
             path: {
               type: "string",
               description: "Path to the file, relative to the project root",
@@ -38,7 +35,7 @@ export const readFileTool: Tool = {
               description: "Ending line number (inclusive)",
             },
           },
-          required: ["reason", "path"],
+          required: ["path"],
           additionalProperties: false,
         },
       },
@@ -46,14 +43,16 @@ export const readFileTool: Tool = {
   },
 
   async run(args, context: Context): Promise<any> {
-    const { reason, path: filePath, startLine, endLine } = args;
-    console.log("readFileTool ", reason);
+    const { path: filePath, startLine, endLine } = args;
+    const oraManager = new OraManager();
+    oraManager.start(`Reading file '${filePath}' from project...`);
     const cwd = context.workingDirectory;
     const absolutePath = path.resolve(cwd, filePath);
 
     try {
       // Check if file exists
       if (!fs.existsSync(absolutePath)) {
+        oraManager.fail(`File not found: '${filePath}'`);
         return { error: `File not found: ${filePath}` };
       }
 
@@ -68,6 +67,7 @@ export const readFileTool: Tool = {
 
         content = lines.slice(start, end).join("\n");
 
+        oraManager.succeed(`File read successfully: '${filePath}' (lines ${start + 1}-${end})`);
         return {
           content,
           path: filePath,
@@ -77,13 +77,15 @@ export const readFileTool: Tool = {
         };
       }
 
+      oraManager.succeed(`File read successfully: '${filePath}'`);
       return {
         content,
         path: filePath,
         totalLines: content.split("\n").length,
       };
     } catch (error: any) {
-      return { error: error.message || "Failed to read file" };
+      oraManager.fail(`Failed to read file '${filePath}': ${error.message || error}`);
+      return { error: error.message || `Failed to read file: ${filePath}` };
     }
   },
 };

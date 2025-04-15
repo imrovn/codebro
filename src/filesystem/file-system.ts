@@ -4,6 +4,7 @@ import type { File } from "types";
 
 /**
  * Gets relevant files from a directory with limits on depth and exclusions
+ * TODO: Get exclude files from .gitignore
  */
 export async function getRelevantFiles(
   dirPath: string,

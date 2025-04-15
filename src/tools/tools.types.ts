@@ -26,3 +26,19 @@ export interface ToolCallResponse {
   readonly call: ToolCall;
   readonly result: any;
 }
+
+export interface Task {
+  id: string;
+  description: string;
+  status: "pending" | "in_progress" | "completed" | "failed";
+  subtasks?: Task[];
+  dependencies?: string[];
+  output?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProjectState {
+  tasks: Task[];
+  lastUpdated: string;
+}

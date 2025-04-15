@@ -36,3 +36,10 @@ export interface AgentConfig {
   memoryBankDir?: string;
   temperature?: number;
 }
+
+// Response interfaces
+export interface AIResponse {
+  content: string;
+  toolCalls: OpenAI.Chat.ChatCompletionMessageToolCall[];
+  isStreaming?: boolean;
+}

@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+import type { ProjectState } from "tools";
 
 /**
  * Agent context
@@ -7,35 +7,20 @@ export interface Context {
   workingDirectory: string;
   memoryBank?: any;
   files?: File[];
+  projectState?: ProjectState;
+  memory?: {
+    conversations: Array<{ role: string; content: string; timestamp: string }>;
+    lastUpdated: string;
+  };
 
   [key: string]: any;
 }
 
-export interface Config {
-  apiKey: string;
-  model: string;
-  maxFiles: number;
-  excludePaths: string[];
-  useStreaming: boolean;
-  useOpenRouter: boolean;
-  useOpenAI: boolean;
-}
-
-// File types and context interfaces
 export interface File {
   name: string;
   path: string;
   content: string;
   isDirectory: boolean;
-}
-
-// Configuration interface
-
-// Response interfaces
-export interface AIResponse {
-  content: string;
-  toolCalls: OpenAI.Chat.ChatCompletionMessageToolCall[];
-  isStreaming?: boolean;
 }
 
 // Memory Bank interfaces

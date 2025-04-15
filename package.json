@@ -14,6 +14,7 @@
   "scripts": {
     "dev": "bun run --watch src/cli.ts",
     "build": "bun build ./src/cli.ts --outdir ./dist --target node",
+    "build-mac-arm64": "bun build --compile --target=bun-darwin-arm64 src/cli.ts --outfile ./dist/codebro",
     "release-latest": "oxlint && bunx bumpp && bun run build && npm publish",
     "start": "bun run ./src/cli.ts",
     "prettier:fix": "prettier . --write"

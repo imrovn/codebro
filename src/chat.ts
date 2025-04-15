@@ -44,6 +44,11 @@ async function chatLoop(agent: BaseAgent) {
   console.log("\n🤖 Ready! Type your message (or 'exit' to quit)\n");
   while (true) {
     const userInput = (await terminal.question("You: ")).trim();
+
+    if (!userInput) {
+      continue;
+    }
+
     if (COMMANDS.EXIT.includes(userInput)) {
       createAgentLog("Bye bye !\n");
       process.exit(0);

@@ -1,20 +1,19 @@
-import type { AgentConfig, AgentRunHistory, AgentState } from "../agents.types";
-import { type Tool } from "tools";
-import type { AIResponse, Context } from "types";
+import type { AgentConfig, AgentRunHistory, AgentState, AIResponse } from "../agents.types";
+import { formatToolsForPrompt, removeRedundantTools, type Task, type Tool } from "tools";
+import { taskManagerTool } from "tools/task-manager";
+import type { Context } from "types";
 import { createAssistantMessage, createUserMessage, type Message } from "messages";
 import type OpenAI from "openai";
 import process from "process";
 import path from "path";
 import { promises as fs } from "fs";
+import chalk from "chalk";
 
 const defaultHistory: AgentRunHistory = {
   messages: [],
   toolCalls: [],
 };
 
-/**
- * Base Agent class that all specific agents will extend
- */
 export abstract class BaseAgent {
   protected config: AgentConfig;
   protected state: AgentState;
@@ -29,7 +28,7 @@ export abstract class BaseAgent {
       ...config,
       name: config.name || "codebro",
       systemPrompt: config.systemPrompt || "",
-      temperature: config.temperature || 0.7,
+      temperature: config.temperature || 0.5,
     };
 
     // Initialize the state
@@ -38,7 +37,30 @@ export abstract class BaseAgent {
       context,
     };
     this.client = config.client;
-    this.tools = config.tools;
+    this.tools = removeRedundantTools([...(config.tools || []), taskManagerTool]);
+    this.initializeState().catch(console.error);
+  }
+
+  /**
+   * Initialize state by loading custom rules and tasks
+   */
+  protected async initializeState(): Promise<void> {
+    const codebroDir = path.join(this.state.context.workingDirectory, ".codebro");
+    await fs.mkdir(codebroDir, { recursive: true });
+
+    //  create project tasks
+    const statePath = path.join(codebroDir, "tasks.json");
+    const initialState = { tasks: [], lastUpdated: new Date().toISOString() };
+    await fs.writeFile(statePath, JSON.stringify(initialState, null, 2));
+    this.state.context.projectState = initialState;
+
+    // Load or create memory
+    const memoryPath = path.join(codebroDir, "memory.json");
+    const initialMemory = { conversations: [], lastUpdated: new Date().toISOString() };
+    await fs.writeFile(memoryPath, JSON.stringify(initialMemory, null, 2));
+    this.state.context.memory = initialMemory;
+
+    // TODO: Load or create project architecture
   }
 
   getTools(): OpenAI.Chat.ChatCompletionTool[] {
@@ -47,6 +69,7 @@ export abstract class BaseAgent {
 
   pushMessage(msg: Message): void {
     this.state.history.messages.push(msg);
+    this.updateMemory(msg).catch(console.error);
   }
 
   getMessages(): Message[] {
@@ -54,8 +77,24 @@ export abstract class BaseAgent {
   }
 
   /**
-   * Run the agent with a user message
+   * Update memory with new message
    */
+  protected async updateMemory(msg: Message): Promise<void> {
+    const memoryPath = path.join(this.state.context.workingDirectory, ".codebro/memory.json");
+    let memory = this.state.context.memory || { conversations: [], lastUpdated: new Date().toISOString() };
+
+    memory.conversations.push({
+      role: msg.role,
+      content: JSON.stringify(msg.content),
+      timestamp: new Date().toISOString(),
+    });
+    memory.lastUpdated = new Date().toISOString();
+
+    await fs.writeFile(memoryPath, JSON.stringify(memory, null, 2));
+
+    this.state.context.memory = memory;
+  }
+
   public async chat(message: string = "", onStream?: (chunk: string) => void): Promise<string> {
     // Add user message to history
     if (message) {
@@ -66,7 +105,7 @@ export abstract class BaseAgent {
     if (this.getMessages().length === 1) {
       this.getMessages().unshift({
         role: "system",
-        content: this.getSystemPrompt(),
+        content: await this.getSystemPrompt(),
       });
     }
     let finalResponse = "";
@@ -96,8 +135,6 @@ export abstract class BaseAgent {
           tool_call_id: toolCall.id,
         });
       });
-
-      this.state.history.messages = [{ role: "system", content: this.getSystemPrompt() }, ...this.getMessages()];
     }
 
     this.pushMessage({
@@ -106,11 +143,11 @@ export abstract class BaseAgent {
     });
 
     // Limit conversation history to prevent memory issues
-    if (this.getMessages().length > 20) {
+    if (this.getMessages().length > 30) {
       this.state.history.messages = [
         {
           role: "system",
-          content: this.getSystemPrompt(),
+          content: await this.getSystemPrompt(),
         },
         ...this.getMessages().slice(-19),
       ];
@@ -131,14 +168,14 @@ export abstract class BaseAgent {
           tools: this.getTools(),
         });
         content = response?.choices[0]?.message.content || "";
-        return { content, isStreaming, toolCalls: [] };
+        return { content, isStreaming, toolCalls: response?.choices[0]?.message.tool_calls || [] };
       }
 
-      const print = (content: string) => {
+      const print = (chunk: string) => {
         if (callback) {
-          callback(content);
+          callback(chunk);
         } else {
-          process.stdout.write(content);
+          process.stdout.write(chunk);
         }
       };
 
@@ -211,43 +248,72 @@ export abstract class BaseAgent {
     }
 
     const args = JSON.parse(toolCall.function.arguments);
-    return await tool.run(args, this.state.context);
+    const result = await tool.run(args, this.state.context);
+
+    // Update task state if taskManager tool is used
+    if (toolName === "taskManager" && result.success && ["create", "update"].includes(args.action)) {
+      await this.syncProjectState();
+    }
+
+    return result;
   }
 
-  /**
-   * Find a tool by name
-   */
   protected findTool(name: string): Tool | undefined {
     return this.tools?.find(tool => tool.getDefinition().function.name === name);
   }
 
   /**
+   * Sync project state from file
+   */
+  private async syncProjectState(): Promise<void> {
+    const statePath = path.join(this.state.context.workingDirectory, ".codebro/tasks.json");
+    try {
+      const stateContent = await fs.readFile(statePath, "utf-8");
+      this.state.context.projectState = JSON.parse(stateContent);
+    } catch (error: any) {
+      console.error("Failed to sync project state:", error.message);
+    }
+  }
+
+  /**
    * Get the system prompt
    */
-  protected getSystemPrompt(): string {
-    const toolPrompt = `
-# Tool usage policy
-  - When doing file search, prefer to use the Agent tool in order to reduce context usage.
-  - If you intend to call multiple tools and there are no dependencies between the calls, make all of the independent calls in the same function_calls block.
-  
+  protected async getSystemPrompt(): Promise<string> {
+    let systemPrompt = this.config.systemPrompt || "";
+    if (this.state.context.files?.length) {
+      systemPrompt += `Current directory: ${this.state.context.workingDirectory}\n
+The following files are in the project:
+    ${this.state.context.files.map(file => `- ${file.path}`).join("\n")} `;
+    }
+
+    systemPrompt += `
+\n# Tool usage policy
+- When doing file search, prefer to use the Agent tool in order to reduce context usage.
+- If you intend to call multiple tools and there are no dependencies between the calls, make all of the independent calls in the same function_calls block.
+- Use taskManager tool to create and track tasks for complex queries, breaking them into subtasks with dependencies.
+
 You MUST answer concisely with fewer than 4 lines of text (not including tool use or code generation), unless user asks for detail.
 
 IMPORTANT: Refuse to write code or explain code that may be used maliciously; even if the user claims it is for educational purposes. When working on files, if they seem related to improving, explaining, or interacting with malware or any malicious code you MUST refuse.
-`;
+    
+    ${this.tools.length > 0 ? formatToolsForPrompt(this.tools) : ""}
+    `;
 
-    let systemPrompt = this.config.systemPrompt || "";
-    if (this.state.context.files?.length) {
-      systemPrompt += `Current directory ${this.state.context.workingDirectory}\n;
-"The following files are in the project:" : "No files found in the project"}
-${this.state.context.files.map(file => `- ${file.path}`).join("\n")} `;
-    }
-
-    systemPrompt += toolPrompt;
-
-    const additionalPrompt = this.loadAdditionalPrompt();
+    const additionalPrompt = await this.loadAdditionalPrompt();
     if (additionalPrompt) {
       systemPrompt += `\n# Additional rules from user\n ${additionalPrompt}\n`;
     }
+
+    // Include active tasks
+    const projectState = this.state.context.projectState as { tasks: Task[] } | undefined;
+    if (projectState?.tasks?.length) {
+      systemPrompt += `\n# Active Tasks\n${projectState.tasks
+        .filter(t => ["pending", "in_progress"].includes(t.status))
+        .map(t => `- ${t.id}: ${t.description} (${t.status})`)
+        .join("\n")}\n`;
+    }
+    console.log(chalk.red(systemPrompt + "\n\n"));
+
     return systemPrompt;
   }
 
@@ -257,6 +323,7 @@ ${this.state.context.files.map(file => `- ${file.path}`).join("\n")} `;
       return await fs.readFile(rulesFilePath, "utf8");
     } catch (error: any) {
       if (error.code === "ENOENT") {
+        await fs.writeFile(rulesFilePath, "# Custom rules for Codebro\n", "utf8");
         return "";
       }
       throw error;
@@ -268,6 +335,12 @@ ${this.state.context.files.map(file => `- ${file.path}`).join("\n")} `;
    */
   public clearHistory(): void {
     this.state.history = defaultHistory;
+    this.state.context.memory = { conversations: [], lastUpdated: new Date().toISOString() };
+
+    fs.writeFile(
+      path.join(this.state.context.workingDirectory, ".codebro/memory.json"),
+      JSON.stringify(this.state.context.memory, null, 2)
+    ).catch(console.error);
   }
 
   /**

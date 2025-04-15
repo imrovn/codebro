@@ -24,6 +24,8 @@ const defaultConfig: Config = {
     ".gitignore",
     ".prettierrc",
     ".prettierignore",
+    ".gradle",
+    ".idea",
   ],
   useOpenRouter: Boolean(process.env.USE_OPENROUTER || false),
   useAzure: Boolean(process.env.USE_AZURE || false),

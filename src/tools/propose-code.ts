@@ -166,14 +166,3 @@ export function getPatch({
       lines: h.lines.map(l => l.replaceAll(AMPERSAND_TOKEN, "&").replaceAll(DOLLAR_TOKEN, "$")),
     }));
 }
-
-/**
- * Example usage:
- * const result = await proposeCodeTool.run({
- *   path: 'src/foo.ts',
- *   oldString: 'console.log("foo")',
- *   newString: 'console.log("bar")',
- *   codeMarkdownLanguage: 'typescript',
- *   instruction: 'Update log statement',
- * }, { workingDirectory: process.cwd() });
- */

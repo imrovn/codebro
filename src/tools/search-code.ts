@@ -75,12 +75,14 @@ export const searchCodeTool: Tool = {
           result += "\n(Results are truncated. Consider using a more specific path or pattern.)";
         }
 
-        oraManager.succeed();
+        oraManager.succeed(
+          `Search completed: Found ${results.length} match${results.length === 1 ? "" : "es"} for '${query}' in ${filePattern || "all files"}.`
+        );
       }
 
       return {
         count: results.length,
-        results: results,
+        results,
       };
     } catch (error: any) {
       // If rg returns no matches, it will exit with code 1

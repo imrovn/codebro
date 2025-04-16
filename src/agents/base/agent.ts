@@ -48,34 +48,8 @@ export abstract class BaseAgent {
     const codebroDir = path.join(this.state.context.workingDirectory, ".codebro");
     await fs.mkdir(codebroDir, { recursive: true });
 
-    //  create project tasks
     const taskPath = path.join(codebroDir, "tasks.md");
     await fs.writeFile(taskPath, "# Codebro tasks\n\n", "utf8");
-    // try {
-    //   const taskContent = await fs.readFile(taskPath, "utf-8");
-    //   this.state.context.projectState = { tasks: parseMarkdownTasks(taskContent) };
-    // } catch (error: any) {
-    //   if (error.code === "ENOENT") {
-    //     this.state.context.projectState = { tasks: [] };
-    //   } else {
-    //     throw error;
-    //   }
-    // }
-
-    // // Load or create memory
-    // const memoryPath = path.join(codebroDir, "memory.json");
-    // try {
-    //   const memoryContent = await fs.readFile(memoryPath, "utf-8");
-    //   this.state.context.memory = JSON.parse(memoryContent);
-    // } catch (error: any) {
-    //   if (error.code === "ENOENT") {
-    //     const initialMemory = { conversations: [], lastUpdated: new Date().toISOString() };
-    //     await fs.writeFile(memoryPath, JSON.stringify(initialMemory, null, 2));
-    //     this.state.context.memory = initialMemory;
-    //   } else {
-    //     throw error;
-    //   }
-    // }
   }
 
   getTools(): OpenAI.Chat.ChatCompletionTool[] {
@@ -84,31 +58,11 @@ export abstract class BaseAgent {
 
   pushMessage(msg: Message): void {
     this.state.history.messages.push(msg);
-    // this.updateMemory(msg).catch(console.error);
   }
 
   getMessages(): Message[] {
     return this.state.history.messages;
   }
-
-  // /**
-  //  * Update memory with new message
-  //  */
-  // protected async updateMemory(msg: Message): Promise<void> {
-  //   const memoryPath = path.join(this.state.context.workingDirectory, ".codebro/memory.json");
-  //   let memory = this.state.context.memory || { conversations: [], lastUpdated: new Date().toISOString() };
-  //
-  //   memory.conversations.push({
-  //     role: msg.role,
-  //     content: JSON.stringify(msg.content),
-  //     timestamp: new Date().toISOString(),
-  //   });
-  //   memory.lastUpdated = new Date().toISOString();
-  //
-  //   await fs.writeFile(memoryPath, JSON.stringify(memory, null, 2));
-  //
-  //   this.state.context.memory = memory;
-  // }
 
   public async chat(message: string = "", onStream?: (chunk: string) => void): Promise<string> {
     // Add user message to history
@@ -195,7 +149,6 @@ export abstract class BaseAgent {
       }
 
       let isFirstChunk = true;
-      // console.log("Calling llm with content", (JSON.parse(JSON.stringify(messages)) as Array<any>).pop()?.content);
       const stream = await this.client.chat.completions.create({
         model,
         messages,
@@ -207,11 +160,6 @@ export abstract class BaseAgent {
         const deltaContent = chunk.choices[0]?.delta?.content || "";
         const deltaToolCalls = chunk.choices[0]?.delta?.tool_calls || [];
         if (deltaContent) {
-          // Handle first chunk
-          if (isFirstChunk) {
-            isFirstChunk = false;
-            // TODO: handle message of first tool
-          }
           content += deltaContent;
         } else if (chunk.choices[0]?.finish_reason == "stop") {
         }
@@ -289,19 +237,6 @@ export abstract class BaseAgent {
     return this.tools?.find(tool => tool.getDefinition().function.name === name);
   }
 
-  // /**
-  //  * Sync project state from file
-  //  */
-  // private async syncProjectState(): Promise<void> {
-  //   const statePath = path.join(this.state.context.workingDirectory, ".codebro/tasks.md");
-  //   try {
-  //     const stateContent = await fs.readFile(statePath, "utf-8");
-  //     this.state.context.projectState = JSON.parse(stateContent);
-  //   } catch (error: any) {
-  //     console.error("Failed to sync project state:", error.message);
-  //   }
-  // }
-
   /**
    * Get the system prompt
    */
@@ -312,18 +247,6 @@ export abstract class BaseAgent {
     // The following files are in the project:
     //     ${this.state.context.files.map(file => `- ${file.path}`).join("\n")} `;
     //     }
-
-    //     systemPrompt += `
-    // \n# Tool usage policy
-    // - When doing file search, prefer to use the Agent tool in order to reduce context usage.
-    // - If you intend to call multiple tools and there are no dependencies between the calls, make all of the independent calls in the same function_calls block.
-    // - Use taskManager tool to create and track tasks for complex queries, breaking them into subtasks with dependencies.
-    //
-    // You MUST answer concisely with fewer than 4 lines of text (not including tool use or code generation), unless user asks for detail.
-    //
-    // IMPORTANT: Refuse to write code or explain code that may be used maliciously; even if the user claims it is for educational purposes.
-    // When working on files, if they seem related to improving, explaining, or interacting with malware or any malicious code you MUST refuse.
-    //     `;
 
     systemPrompt += `
     \n# Tool usage policy

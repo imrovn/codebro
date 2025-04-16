@@ -99,7 +99,7 @@ export const taskManagerTool: Tool = {
             })),
           };
           tasks.push(newTask);
-          await writeMarkdownTasks(tasksPath, tasks);
+          writeMarkdownTasks(tasksPath, tasks);
           oraManager.succeed("Task created successfully!");
           return { success: true, taskId: newTask.id, message: "Task created" };
         }
@@ -128,7 +128,7 @@ export const taskManagerTool: Tool = {
               status: st.status || "pending",
             })) || task.subtasks;
           tasks[taskIndex] = task;
-          await writeMarkdownTasks(tasksPath, tasks);
+          writeMarkdownTasks(tasksPath, tasks);
           oraManager.succeed("Task updated successfully!");
           return { success: true, message: "Task updated" };
         }
@@ -157,7 +157,7 @@ export const taskManagerTool: Tool = {
           }
           oraManager.update("Deleting task...");
           tasks = tasks.filter(t => t.id !== taskId);
-          await writeMarkdownTasks(tasksPath, tasks);
+          writeMarkdownTasks(tasksPath, tasks);
           oraManager.succeed("Task deleted successfully!");
           return { success: true, message: "Task deleted" };
         }

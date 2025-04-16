@@ -23,7 +23,7 @@ export async function main() {
   if (!validateConfig(config)) {
     process.exit(1);
   }
-  await makeLocalDirIfNotExists();
+  makeLocalDirIfNotExists();
   const context = await gatherContext();
   const client = getClient(config);
   const coderAgent = new CoderAgent(context, { model: config.model, client });

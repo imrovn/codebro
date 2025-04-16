@@ -1,5 +1,5 @@
 import type { AgentConfig, AgentRunHistory, AgentState, AIResponse } from "../agents.types";
-import { removeRedundantTools, type Task, type Tool } from "tools";
+import { formatToolsForPrompt, removeRedundantTools, type Task, type Tool } from "tools";
 import type { Context } from "types";
 import { createAssistantMessage, createUserMessage, type Message } from "messages";
 import type OpenAI from "openai";
@@ -194,14 +194,6 @@ export abstract class BaseAgent {
         return { content, isStreaming, toolCalls: response?.choices[0]?.message.tool_calls || [] };
       }
 
-      const print = (chunk: string) => {
-        if (callback) {
-          callback(chunk);
-        } else {
-          process.stdout.write(chunk);
-        }
-      };
-
       let isFirstChunk = true;
       // console.log("Calling llm with content", (JSON.parse(JSON.stringify(messages)) as Array<any>).pop()?.content);
       const stream = await this.client.chat.completions.create({
@@ -217,12 +209,11 @@ export abstract class BaseAgent {
         if (deltaContent) {
           // Handle first chunk
           if (isFirstChunk) {
-            print("\n🤖: ");
             isFirstChunk = false;
+            // TODO: handle message of first tool
           }
           content += deltaContent;
         } else if (chunk.choices[0]?.finish_reason == "stop") {
-          print("\n");
         }
 
         // Handle tool calls
@@ -322,18 +313,6 @@ export abstract class BaseAgent {
     //     ${this.state.context.files.map(file => `- ${file.path}`).join("\n")} `;
     //     }
 
-    systemPrompt += `
-\n# Tool usage policy
-- When doing file search, prefer to use the Agent tool in order to reduce context usage.
-- If you intend to call multiple tools and there are no dependencies between the calls, make all of the independent calls in the same function_calls block.
-- Use taskManager tool to create and track tasks for complex queries, breaking them into subtasks with dependencies.
-
-You MUST answer concisely with fewer than 4 lines of text (not including tool use or code generation), unless user asks for detail.
-
-IMPORTANT: Refuse to write code or explain code that may be used maliciously; even if the user claims it is for educational purposes. 
-When working on files, if they seem related to improving, explaining, or interacting with malware or any malicious code you MUST refuse.
-    `;
-    //
     //     systemPrompt += `
     // \n# Tool usage policy
     // - When doing file search, prefer to use the Agent tool in order to reduce context usage.
@@ -344,14 +323,26 @@ When working on files, if they seem related to improving, explaining, or interac
     //
     // IMPORTANT: Refuse to write code or explain code that may be used maliciously; even if the user claims it is for educational purposes.
     // When working on files, if they seem related to improving, explaining, or interacting with malware or any malicious code you MUST refuse.
-    //
-    //     ${this.tools.length > 0 ? formatToolsForPrompt(this.tools) : ""}
     //     `;
 
-    // const additionalPrompt = await this.loadAdditionalPrompt();
-    // if (additionalPrompt) {
-    //   systemPrompt += `\n# Additional rules from user\n ${additionalPrompt}\n`;
-    // }
+    systemPrompt += `
+    \n# Tool usage policy
+    - When doing file search, prefer to use the Agent tool in order to reduce context usage.
+    - If you intend to call multiple tools and there are no dependencies between the calls, make all of the independent calls in the same function_calls block.
+    - Use taskManager tool to create and track tasks for complex queries, breaking them into subtasks with dependencies.
+
+    You MUST answer concisely with fewer than 4 lines of text (not including tool use or code generation), unless user asks for detail.
+
+    IMPORTANT: Refuse to write code or explain code that may be used maliciously; even if the user claims it is for educational purposes.
+    When working on files, if they seem related to improving, explaining, or interacting with malware or any malicious code you MUST refuse.
+
+        ${this.tools.length > 0 ? formatToolsForPrompt(this.tools) : ""}
+        `;
+
+    const additionalPrompt = await this.loadAdditionalPrompt();
+    if (additionalPrompt) {
+      systemPrompt += `\n# Additional rules from user\n ${additionalPrompt}\n`;
+    }
 
     // Include active tasks
     const tasks = this.state.context.tasks as Task[] | undefined;

@@ -3,42 +3,45 @@ import type OpenAI from "openai";
 import type { Context } from "types";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
-import { writeFile } from "node:fs/promises";
 import { type Hunk, structuredPatch } from "diff";
 import { formatSuffix, OraManager } from "utils/ora-manager";
 
 /**
- * Edit file in the project
+ * Arguments for proposeCodeTool.
  */
-export const editFileTool: Tool = {
+export interface ProposeCodeArgs {
+  path: string; // Absolute or project-relative path
+  oldString: string; // The code to be replaced (can be empty for new file)
+  newString: string; // The new code to insert
+  codeMarkdownLanguage: string;
+  instruction: string;
+  targetLintErrorIds?: string[];
+}
+
+/**
+ * Propose code edits to a file, following the agentic convention.
+ * - Only the changed lines are specified, with context.
+ * - All edits must be combined in a single call.
+ *
+ * @param args ProposeCodeArgs
+ * @param context Context
+ * @returns Patch and proposed new file content
+ */
+export const proposeCodeTool: Tool = {
   getDefinition(): OpenAI.Chat.ChatCompletionTool {
     return {
       type: "function" as const,
       function: {
-        name: "editFile",
-        description: `
-This tool edits a file by replacing a specific string with new content, preserving the entire original file content.
-For moving or renaming files, use the 'executeCommand' tool with 'mv'. For overwriting entire files, use the 'writeFile' tool.
-
-The tool replaces ONE occurrence of oldString with newString in the specified file, ensuring the final file is complete and idiomatic.
-If multiple replacements are needed, make separate calls, each uniquely identifying the instance with extensive context.
-When making edits:
-   - Ensure the edit results in correct, idiomatic code.
-   - Do not leave the code in a broken state.
-   - Use absolute file paths (starting with /).
-   - Preserve all original content except the replaced section.
-
-To create a new file:
-   - Use an empty oldString and provide the full content as newString.
-
-Multiple edits to the same file should be batched in a single message with multiple calls to this tool.
-`,
+        name: "proposeCode",
+        description: `Propose precise code edits to a file. Use context lines to identify the edit location. 
+        Edits must be correct and idiomatic. Do not leave code in a broken state. 
+        To create a new file, use an empty oldString and provide the full content as newString.`,
         parameters: {
           type: "object",
           properties: {
             path: {
               type: "string",
-              description: "The absolute path to the file to modify (must be absolute, not relative)",
+              description: "The absolute or project-relative path to the file to modify",
             },
             oldString: {
               type: "string",
@@ -48,48 +51,60 @@ Multiple edits to the same file should be batched in a single message with multi
               type: "string",
               description: "The new text to insert in place of oldString",
             },
+            codeMarkdownLanguage: {
+              type: "string",
+              description: "Language identifier (e.g., typescript, python)",
+            },
+            instruction: {
+              type: "string",
+              description: "Human-readable summary of the change",
+            },
+            targetLintErrorIds: {
+              type: "array",
+              items: { type: "string" },
+              description: "Lint error IDs this edit aims to fix (optional)",
+            },
           },
-          required: ["path", "oldString", "newString"],
+          required: ["path", "oldString", "newString", "codeMarkdownLanguage", "instruction"],
           additionalProperties: false,
         },
       },
     };
   },
 
-  async run(args, context: Context): Promise<any> {
-    const { path: filePath, oldString, newString } = args;
+  async run(args: ProposeCodeArgs, context: Context): Promise<any> {
+    const { path: filePath, oldString, newString, codeMarkdownLanguage, instruction, targetLintErrorIds } = args;
     const cwd = context.workingDirectory;
     const oraManager = new OraManager();
+    oraManager.startTool("Proposing code edit...", formatSuffix(filePath));
     try {
       const fullFilePath = isAbsolute(filePath) ? filePath : resolve(cwd, filePath);
       const dir = dirname(fullFilePath);
       const originalFile = existsSync(fullFilePath) ? readFileSync(fullFilePath, "utf8") : "";
-      oraManager.startTool(`Editing file...`, formatSuffix(fullFilePath));
-
       // Validate oldString exists if not creating a new file
       if (oldString && originalFile && !originalFile.includes(oldString)) {
         oraManager.fail(`oldString not found in file: ${oldString}`);
         throw new Error(`oldString not found in file: ${oldString}`);
       }
-
-      oraManager.update("Applying patch...");
+      oraManager.update("Computing patch...");
       mkdirSync(dir, { recursive: true });
       const { patch, updatedFile } = applyEdit(originalFile, oldString, newString);
-      console.log("\npatch: ", patch);
-      await writeFile(fullFilePath, updatedFile, { encoding: "utf8", flush: true });
-
-      oraManager.succeed(`File edited successfully. `, formatSuffix(fullFilePath));
+      console.log("result patch", patch);
+      oraManager.succeed("Proposed code edit ready.");
       return {
         success: true,
         path: filePath,
         oldString,
         newString,
-        message: `File edited successfully`,
+        codeMarkdownLanguage,
+        instruction,
+        targetLintErrorIds,
         patch,
+        proposedFile: updatedFile,
       };
     } catch (error: any) {
-      oraManager.fail("File editing failed due to error: " + +error.message);
-      return { error: error.message || "Failed to edit file" };
+      oraManager.fail("Failed to propose code edit: " + error.message);
+      return { error: error.message || "Failed to propose code edit" };
     }
   },
 };
@@ -100,7 +115,6 @@ export function applyEdit(
   newString: string
 ): { patch: Hunk[]; updatedFile: string } {
   let updatedFile: string;
-
   if (oldString === "") {
     // Create new file
     updatedFile = newString;
@@ -114,14 +128,12 @@ export function applyEdit(
       throw new Error("No changes applied; oldString matched but replacement failed");
     }
   }
-
   const patch = getPatch({
     filePath: "file",
     fileContents: originalFile,
     oldStr: originalFile,
     newStr: updatedFile,
   });
-
   return { patch, updatedFile };
 }
 
@@ -142,7 +154,7 @@ export function getPatch({
   return structuredPatch(
     filePath,
     filePath,
-    oldStr.replaceAll("&", AMPERSAND_TOKEN).replaceAll("$", DOLLAR_TOKEN),
+    fileContents.replaceAll("&", AMPERSAND_TOKEN).replaceAll("$", DOLLAR_TOKEN),
     newStr.replaceAll("&", AMPERSAND_TOKEN).replaceAll("$", DOLLAR_TOKEN),
     undefined,
     undefined,
@@ -154,3 +166,14 @@ export function getPatch({
       lines: h.lines.map(l => l.replaceAll(AMPERSAND_TOKEN, "&").replaceAll(DOLLAR_TOKEN, "$")),
     }));
 }
+
+/**
+ * Example usage:
+ * const result = await proposeCodeTool.run({
+ *   path: 'src/foo.ts',
+ *   oldString: 'console.log("foo")',
+ *   newString: 'console.log("bar")',
+ *   codeMarkdownLanguage: 'typescript',
+ *   instruction: 'Update log statement',
+ * }, { workingDirectory: process.cwd() });
+ */

@@ -1,6 +1,6 @@
 {
   "name": "codebro",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "module": "src/cli.ts",
   "type": "module",
   "bin": "./dist/cli.js",

@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from "uuid";
 import type { Task, Tool } from "./tools.types";
 import { createErrorLog, parseMarkdownTasks, writeMarkdownTasks } from "utils";
 import { OraManager } from "utils/ora-manager";
+import chalk from "chalk";
 
 /**
  * Task Manager Tool: Manages tasks and subtasks, persists state in .codebro/tasks.json
@@ -16,25 +17,7 @@ export const taskManagerTool: Tool = {
       type: "function" as const,
       function: {
         name: "taskManager",
-        description: `Manages project tasks, including creation, updates, and retrieval. Persists state in .codebro/tasks.md.
-1. When adding new tasks, please provide tasks and subtasks based on the plan of architectTool for example:
-        Result from architectTool: 
-Task: Set Up Project Structure
-- Create a single Python file snake_game.py
-- Import required libraries (curses, random, time)
-Task: Initialize Game Environment
-- Set up curses screen
-- Configure terminal settings
-
-Then each create action should be:
-{ "action": "create", "description": "Set Up Project Structure", "subtasks":[{"description":"Create a single Python file snake_game.py", "status": "pending"}, {"description":"Import required libraries (curses, random, time)", "status": "pending"}]  }
-
-Create multiple actions if possible.
-2. Updating task
-Only update sub tasks if that task's status is changed, otherwise keep it as it is, do not remove them to keep track all tasks.
-3. Deleting tasks
-Only delete tasks when user ask, otherwise keep track the progress.
-        `,
+        description: `Manages project tasks, including creation, updates, and retrieval. Persists state in .codebro/tasks.md. Do not provide subtasks when you're updating/deleting single task`,
         parameters: {
           type: "object",
           properties: {
@@ -67,15 +50,6 @@ Only delete tasks when user ask, otherwise keep track the progress.
               },
               description: "Subtasks to create or update",
             },
-            dependencies: {
-              type: "array",
-              items: { type: "string" },
-              description: "Task IDs that this task depends on",
-            },
-            output: {
-              type: "string",
-              description: "Task output or result (for update)",
-            },
           },
           required: ["action"],
           additionalProperties: false,
@@ -88,8 +62,12 @@ Only delete tasks when user ask, otherwise keep track the progress.
     const oraManager = new OraManager();
     const { action, taskId, description, status, subtasks } = args;
     const tasksPath = path.join(context.workingDirectory, ".codebro/tasks.md");
-    oraManager.start(`Task Manager: ${action} action in progress...`);
-    // (Removed duplicate destructure and tasksPath declaration)
+    oraManager.startTool(
+      `Task Manager: ${action} action in progress...`,
+      chalk.dim(
+        `[action=${action} ${status ? ", status: " + status : ""} ${description ? ", description: " + description : ""}]`
+      )
+    );
     try {
       oraManager.update("Reading tasks...");
       let tasks: Task[] = [];
@@ -121,7 +99,7 @@ Only delete tasks when user ask, otherwise keep track the progress.
             })),
           };
           tasks.push(newTask);
-          await writeMarkdownTasks(tasksPath, tasks);
+          writeMarkdownTasks(tasksPath, tasks);
           oraManager.succeed("Task created successfully!");
           return { success: true, taskId: newTask.id, message: "Task created" };
         }
@@ -150,7 +128,7 @@ Only delete tasks when user ask, otherwise keep track the progress.
               status: st.status || "pending",
             })) || task.subtasks;
           tasks[taskIndex] = task;
-          await writeMarkdownTasks(tasksPath, tasks);
+          writeMarkdownTasks(tasksPath, tasks);
           oraManager.succeed("Task updated successfully!");
           return { success: true, message: "Task updated" };
         }
@@ -179,7 +157,7 @@ Only delete tasks when user ask, otherwise keep track the progress.
           }
           oraManager.update("Deleting task...");
           tasks = tasks.filter(t => t.id !== taskId);
-          await writeMarkdownTasks(tasksPath, tasks);
+          writeMarkdownTasks(tasksPath, tasks);
           oraManager.succeed("Task deleted successfully!");
           return { success: true, message: "Task deleted" };
         }
@@ -188,7 +166,7 @@ Only delete tasks when user ask, otherwise keep track the progress.
           return getErrorResponse("Invalid action");
       }
     } catch (error: any) {
-      oraManager.fail(error.message || "Task management failed");
+      oraManager.fail("Task management failed: " + error.message);
       return { success: false, error: error.message || "Task management failed" };
     }
   },

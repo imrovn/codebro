@@ -35,6 +35,7 @@ Before using this tool:
               description: "Whether to create parent directories if they don't exist",
             },
           },
+
           required: ["path", "content"],
           additionalProperties: false,
         },
@@ -45,7 +46,7 @@ Before using this tool:
   async run(args, context: Context): Promise<any> {
     const { path: filePath, content, createDirs = true } = args;
     const oraManager = new OraManager();
-    oraManager.start(`Writing file: ${filePath}`);
+    oraManager.startTool(`Writing file: ${filePath}`);
     const cwd = context.workingDirectory;
     const absolutePath = path.resolve(cwd, filePath);
 
@@ -58,7 +59,7 @@ Before using this tool:
 
       // Write content to file
       fs.writeFileSync(absolutePath, content, "utf-8");
-      oraManager.succeed(`File written successfully: ${filePath}`);
+      oraManager.succeed("File written successfully", `\t ${filePath}`);
       return {
         success: true,
         path: filePath,

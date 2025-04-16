@@ -34,7 +34,7 @@ export const executeCommandTool: Tool = {
               description: "Timeout in milliseconds. Defaults to 30000 (30 seconds).",
             },
           },
-          required: [ "command"],
+          required: ["command"],
           additionalProperties: false,
         },
       },
@@ -43,9 +43,9 @@ export const executeCommandTool: Tool = {
 
   async run(args, context: Context): Promise<any> {
     const oraManager = new OraManager();
-    oraManager.start("Executing command...");
     const { command, workingDir = ".", timeout = 30000 } = args;
     const cwd = path.resolve(context.workingDirectory, workingDir);
+    oraManager.startTool("Executing command...", "\t " + command);
 
     // Security check - don't allow dangerous commands
     if (isForbiddenCommand(command)) {
@@ -69,7 +69,7 @@ export const executeCommandTool: Tool = {
         workingDir,
       };
     } catch (error: any) {
-      oraManager.fail(error.message || "Command execution failed");
+      oraManager.fail("Command execution failed: " + error.message);
       return {
         error: error.message || "Command execution failed",
         stderr: error.stderr,

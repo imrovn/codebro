@@ -8,6 +8,7 @@ import { CoderAgent } from "agents/coder/agent.ts";
 import type { BaseAgent } from "agents/base/agent.ts";
 import { getClient } from "client";
 import { OraManager } from "utils/ora-manager.ts";
+import chalk from "chalk";
 
 // Define CLI commands
 const COMMANDS = {
@@ -22,7 +23,7 @@ export async function main() {
   if (!validateConfig(config)) {
     process.exit(1);
   }
-  await makeLocalDirIfNotExists();
+  makeLocalDirIfNotExists();
   const context = await gatherContext();
   const client = getClient(config);
   const coderAgent = new CoderAgent(context, { model: config.model, client });
@@ -45,7 +46,7 @@ async function chatLoop(agent: BaseAgent) {
   oraManager.start("Setting up...");
   oraManager.succeed("Ready! Type your message (or 'exit' to quit)");
   while (true) {
-    const userInput = (await terminal.question("You: ")).trim();
+    const userInput = (await terminal.question(chalk.blue("You: "))).trim();
 
     if (!userInput) {
       continue;
@@ -56,14 +57,13 @@ async function chatLoop(agent: BaseAgent) {
       process.exit(0);
     }
 
-    oraManager.start("🤖 Thinking ...\n");
+    oraManager.start("🤖 Thinking ...");
     try {
       const onStream = config.useStreaming ? (chunk: string) => process.stdout.write(chunk) : undefined;
       const response = await agent.chat(userInput, onStream);
-      oraManager.succeed("Agent responded.");
-      console.log(response + "\n");
+      oraManager.succeed(response);
     } catch (error: any) {
-      oraManager.fail(error.message || "Agent error");
+      oraManager.fail("Error during get response: " + error.message || "Agent error");
       console.error(error);
     }
   }

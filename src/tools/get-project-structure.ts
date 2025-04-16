@@ -14,7 +14,8 @@ export const projectStructureTool: Tool = {
       type: "function" as const,
       function: {
         name: "projectStructure",
-        description: "Get the structure of the project directory",
+        description:
+          "Get the structure of the current project. Use this tool when you want to get the project structure",
         parameters: {
           type: "object",
           properties: {
@@ -41,7 +42,7 @@ export const projectStructureTool: Tool = {
   async run(args, context: Context): Promise<any> {
     const { directory = "", depth = 3, exclude = "node_modules,.git,dist,build" } = args;
     const oraManager = new OraManager();
-    oraManager.start(
+    oraManager.startTool(
       `Getting project structure for '${directory || "."}' with depth ${depth} (excluding: ${exclude})...`
     );
     const cwd = context.workingDirectory;

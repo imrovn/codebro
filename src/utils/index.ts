@@ -5,9 +5,9 @@ import { getRelevantFiles } from "filesystem";
 import { config } from "configs";
 import process from "process";
 import type { Task, ToolCallResponse } from "tools";
-import { promises as fs } from "node:fs";
 import path from "node:path";
 import { v4 as uuidv4 } from "uuid";
+import fs from "node:fs";
 
 /**
  * Display help information
@@ -78,12 +78,12 @@ export async function gatherContext(): Promise<Context> {
   };
 }
 
-export async function makeLocalDirIfNotExists() {
+export function makeLocalDirIfNotExists() {
   const workingDirectory = process.cwd();
   const localDir = path.join(workingDirectory, ".codebro");
   try {
-    if (await !fs.exists(localDir)) {
-      await fs.mkdir(localDir);
+    if (!fs.existsSync(localDir)) {
+      fs.mkdirSync(localDir);
     }
   } catch (err) {
     console.error(err);
@@ -136,7 +136,7 @@ export function parseMarkdownTasks(content: string): Task[] {
 /**
  * Write tasks to .codebro/tasks.md in Markdown format
  */
-export async function writeMarkdownTasks(filePath: string, tasks: Task[]): Promise<void> {
+export function writeMarkdownTasks(filePath: string, tasks: Task[]): void {
   let content = "# Codebro Tasks\n\n";
   for (const task of tasks) {
     content += `# Task: ${task.description} (${task.id})\n`;
@@ -148,7 +148,7 @@ export async function writeMarkdownTasks(filePath: string, tasks: Task[]): Promi
     }
     content += "\n";
   }
-  await fs.writeFile(filePath, content, "utf-8");
+  fs.writeFileSync(filePath, content, "utf-8");
 }
 
 /**

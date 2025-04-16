@@ -43,8 +43,8 @@ export const fetchUrlTool: Tool = {
 
   async run(args, context: Context): Promise<any> {
     const oraManager = new OraManager();
-    oraManager.start("Fetching URL...");
     const { url, method = "GET", headers = {}, data } = args;
+    oraManager.startTool("Fetching URL...", `\t ${url}`);
     try {
       const response = await axios({
         url,

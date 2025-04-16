@@ -1,11 +1,13 @@
 import type { Tool } from "tools/tools.types.ts";
 import type OpenAI from "openai";
 import type { Context } from "types";
-import * as child_process from "node:child_process";
-import * as util from "node:util";
 import { OraManager } from "utils/ora-manager";
+import { isAbsolute } from "path";
+import { spawnSync } from "child_process";
+import { rgPath } from "@vscode/ripgrep";
+import chalk from "chalk";
 // Promisify exec
-const execAsync = util.promisify(child_process.exec);
+const MAX_RESULTS = 100;
 /**
  * Search code in the project
  */
@@ -15,21 +17,28 @@ export const searchCodeTool: Tool = {
       type: "function" as const,
       function: {
         name: "searchCode",
-        description: "Search for code patterns in the project files",
+        description: `
+         Fast content search tool that works with any codebase size
+- Searches file contents using regular expressions
+- Supports full regex syntax (eg. "log.*Error", "function\\s+\\w+", etc.)
+- Filter files by pattern with the include parameter (eg. "*.js", "*.{ts,tsx}")
+- Returns matching file paths sorted by modification time
+- Use this tool when you need to find files containing specific patterns
+`,
         parameters: {
           type: "object",
           properties: {
             query: {
               type: "string",
-              description: "The search query or pattern to look for",
+              description: "The search query or pattern to look for.",
+            },
+            path: {
+              type: "string",
+              description: "The directory to search in. Defaults to the current working directory.",
             },
             filePattern: {
               type: "string",
               description: "Optional glob pattern to limit search to specific files (e.g., '*.js', 'src/**/*.ts')",
-            },
-            caseSensitive: {
-              type: "boolean",
-              description: "Whether the search should be case sensitive",
             },
           },
           required: ["query", "reason"],
@@ -40,53 +49,46 @@ export const searchCodeTool: Tool = {
   },
 
   async run(args, context: Context): Promise<any> {
-    const { query, filePattern = "", caseSensitive } = args;
+    const { query, path, filePattern = "" } = args;
     const oraManager = new OraManager();
-    oraManager.start(
-      `Searching for '${query}' in ${filePattern || "all files"} (case ${caseSensitive ? "sensitive" : "insensitive"})...`
+    oraManager.startTool(
+      `Searching for '${query}' in ${filePattern || "all files"}...`,
+      chalk.dim(`${query} with pattern ${filePattern}`)
     );
-    const cwd = context.workingDirectory;
+    const absolutePath = path && isAbsolute(path) ? path : context.workingDirectory;
+    let result = "";
 
     try {
-      // Construct grep command
-      let cmd = `grep -r${caseSensitive ? "" : "i"} --include="${filePattern || "*"}" "${query}" .`;
-
-      // Execute the command
-      const { stdout, stderr } = await execAsync(cmd, { cwd });
-
-      if (stderr) {
-        oraManager.fail(`Search failed: ${stderr}`);
-        return { error: stderr };
+      const rgArgs = ["-li", query];
+      if (filePattern) {
+        rgArgs.push("--glob", filePattern);
       }
 
-      // Process and format results
-      const results = stdout
-        .split("\n")
-        .filter(line => line.trim().length > 0)
-        .map(line => {
-          const [file, ...contentParts] = line.split(":");
-          const content = contentParts.join(":").trim();
-          return { file, content };
-        });
+      const rgResults = spawnSync(rgPath, rgArgs, { cwd: absolutePath, timeout: 10000 });
+      const results = rgResults.stdout?.toString().split("\n") || [];
 
       if (results.length === 0) {
         oraManager.succeed(`No matches found for '${query}' in ${filePattern || "all files"}.`);
       } else {
-        oraManager.succeed(
-          `Search completed: Found ${results.length} match${results.length === 1 ? "" : "es"} for '${query}' in ${filePattern || "all files"}.`
-        );
+        result += `Found ${results.length} file${results.length === 1 ? "" : "s"}\n${results.slice(0, MAX_RESULTS).join("\n")}`;
+        if (results.length > MAX_RESULTS) {
+          result += "\n(Results are truncated. Consider using a more specific path or pattern.)";
+        }
+
+        oraManager.succeed();
       }
+
       return {
         count: results.length,
-        results,
+        results: results,
       };
     } catch (error: any) {
-      // If grep returns no matches, it will exit with code 1
+      // If rg returns no matches, it will exit with code 1
       if (error.code === 1 && !error.stderr) {
         oraManager.succeed(`No matches found for '${query}' in ${filePattern || "all files"}.`);
         return { count: 0, results: [] };
       }
-
+      oraManager.fail(`Search failed: ${error.message}`);
       return { error: error.message || "Search failed" };
     }
   },

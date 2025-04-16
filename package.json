@@ -1,6 +1,6 @@
 {
   "name": "codebro",
-  "version": "0.0.4",
+  "version": "0.0.11",
   "module": "src/cli.ts",
   "type": "module",
   "bin": "./dist/cli.js",
@@ -9,13 +9,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/rovn208/codebro.git"
+    "url": "https://github.com/rovndev/codebro.git"
   },
   "scripts": {
     "dev": "bun run --watch src/cli.ts",
     "build": "bun build ./src/cli.ts --outdir ./dist --target node",
-    "build-mac-arm64": "bun build --compile --target=bun-darwin-arm64 src/cli.ts --outfile ./dist/codebro",
+    "build-mac-arm64": "bun run clean-build && bun build --compile --target=bun-darwin-arm64 src/cli.ts --outfile ./dist/codebro",
     "release-latest": "oxlint && bunx bumpp && bun run build && npm publish",
+    "clean-build": "rimraf dist",
     "start": "bun run ./src/cli.ts",
     "prettier:fix": "prettier . --write"
   },
@@ -23,10 +24,12 @@
     "@types/bun": "latest",
     "@types/diff": "^7.0.2",
     "@types/node": "^20.11.30",
+    "@vscode/ripgrep": "^1.15.11",
     "diff": "^7.0.0",
     "ora": "^8.2.0",
     "oxlint": "^0.16.5",
     "prettier": "^3.5.3",
+    "rimraf": "^6.0.1",
     "typescript": "^5.3.3"
   },
   "dependencies": {

@@ -45,7 +45,7 @@ export const readFileTool: Tool = {
   async run(args, context: Context): Promise<any> {
     const { path: filePath, startLine, endLine } = args;
     const oraManager = new OraManager();
-    oraManager.start(`Reading file '${filePath}' from project...`);
+    oraManager.startTool(`Reading file '${filePath}' from project...`);
     const cwd = context.workingDirectory;
     const absolutePath = path.resolve(cwd, filePath);
 

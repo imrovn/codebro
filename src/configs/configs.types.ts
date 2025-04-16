@@ -8,4 +8,5 @@ export interface Config {
   useOpenRouter: boolean;
   useAzure: boolean;
   useOpenAI: boolean;
+  useLocal: boolean;
 }

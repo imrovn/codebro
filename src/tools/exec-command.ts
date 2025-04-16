@@ -43,7 +43,7 @@ export const executeCommandTool: Tool = {
 
   async run(args, context: Context): Promise<any> {
     const oraManager = new OraManager();
-    const { command, workingDir = ".", timeout = 30000 } = args;
+    const { command, workingDir = ".", timeout = 10000 } = args;
     const cwd = path.resolve(context.workingDirectory, workingDir);
     oraManager.startTool("Executing command...", "\t " + command);
 

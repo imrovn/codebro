@@ -2,6 +2,7 @@ import type { Tool } from "tools/tools.types.ts";
 import type OpenAI from "openai";
 import type { Context } from "types";
 import { OraManager } from "utils/ora-manager";
+import chalk from "chalk";
 
 /**
  * Thinking Tool: Simulates reflection or reasoning by waiting and then responding with a summary.
@@ -45,7 +46,7 @@ The tool simply logs your thought process for better transparency and does not e
   async run(args, context: Context): Promise<any> {
     const { reason, delayInMs } = args;
     const oraManager = new OraManager();
-    oraManager.start(`Thinking: ${reason}`);
+    oraManager.start(`Thinking: ${reason}`, chalk.dim(`\t thinking time: ${delayInMs}`));
 
     try {
       await new Promise(resolve => setTimeout(resolve, delayInMs));

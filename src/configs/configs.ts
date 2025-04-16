@@ -30,6 +30,7 @@ const defaultConfig: Config = {
   useOpenRouter: Boolean(process.env.USE_OPENROUTER || false),
   useAzure: Boolean(process.env.USE_AZURE || false),
   useOpenAI: Boolean(process.env.USE_OPENAI || false),
+  useLocal: Boolean(process.env.USE_LOCAL || false),
 };
 
 /**
@@ -46,6 +47,10 @@ export function createConfig(overrides: Partial<Config> = {}): Config {
  * Validates the configuration
  */
 export function validateConfig(config: Config): boolean {
+  if (config.useLocal && config.baseURL) {
+    return true;
+  }
+
   if (!config.apiKey) {
     console.error("Error: API key is not set. Please set CODE_BRO_API_KEY in your .env file.");
     return false;

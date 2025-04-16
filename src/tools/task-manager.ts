@@ -65,7 +65,7 @@ export const taskManagerTool: Tool = {
     oraManager.startTool(
       `Task Manager: ${action} action in progress...`,
       chalk.dim(
-        `[action=${action} ${status ? ", status: " + status : ""} ${description ? ", description: " + description : ""}]`
+        `[action=${action} ${status ? ", status: " + status : ""} ${description ? ", description: " + description : ""} ${taskId ? ", taskId: " + taskId : ""} ]`
       )
     );
     try {

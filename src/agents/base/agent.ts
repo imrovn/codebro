@@ -1,5 +1,5 @@
 import type { AgentConfig, AgentRunHistory, AgentState, AIResponse } from "../agents.types";
-import { formatToolsForPrompt, removeRedundantTools, type Task, type Tool } from "tools";
+import { removeRedundantTools, type Task, type Tool } from "tools";
 import type { Context } from "types";
 import { createAssistantMessage, createUserMessage, type Message } from "messages";
 import type OpenAI from "openai";
@@ -104,19 +104,19 @@ export abstract class BaseAgent {
         });
       });
     }
+
+    this.pushMessage({
+      role: "assistant",
+      content: finalResponse,
+    });
+
     const { incompleteTasks, allCompleted } = checkTaskCompletion(this.state.context.tasks || []);
     if (!allCompleted) {
       this.pushMessage({
         role: "assistant",
         content: "Okay, now we'll do the next task - " + incompleteTasks[0],
       });
-      finalResponse = await this.chat("", onStream);
     }
-
-    this.pushMessage({
-      role: "assistant",
-      content: finalResponse,
-    });
 
     // Limit conversation history to prevent memory issues
     if (this.getMessages().length > 50) {
@@ -258,8 +258,8 @@ export abstract class BaseAgent {
 
     IMPORTANT: Refuse to write code or explain code that may be used maliciously; even if the user claims it is for educational purposes.
     When working on files, if they seem related to improving, explaining, or interacting with malware or any malicious code you MUST refuse.
-
-        ${this.tools.length > 0 ? formatToolsForPrompt(this.tools) : ""}
+    IMPORTANT: If you failed to executed a tool 2 times, terminate and go to the next function.
+    IMPORTANT: If verify steps failed 3 times, create a new note/task for later and move to the next step
         `;
 
     const additionalPrompt = await this.loadAdditionalPrompt();

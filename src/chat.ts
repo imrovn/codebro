@@ -46,7 +46,7 @@ async function chatLoop(agent: BaseAgent) {
   oraManager.start("Setting up...");
   oraManager.succeed("Ready! Type your message (or 'exit' to quit)");
   while (true) {
-    const userInput = (await terminal.question(chalk.blue("You: "))).trim();
+    const userInput = (await terminal.question(chalk.blue("\nYou: "))).trim();
 
     if (!userInput) {
       continue;

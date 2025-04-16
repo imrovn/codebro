@@ -15,10 +15,7 @@ export const writeFileTool: Tool = {
       function: {
         name: "writeFile",
         description: `Write a file to the local filesystem. Overwrites the existing file if there is one. only use this tool if you want to overwrite files
-
-Before using this tool:
-
-1. Use the ReadFile tool to understand the file's contents and context`,
+Before using this tool, use the ReadFile tool to understand the file's contents and context. Please make sure that path is correct and match with our current structure/code convention. `,
         parameters: {
           type: "object",
           properties: {

@@ -29,6 +29,10 @@ export function getCodeTools(): Tool[] {
   ];
 }
 
+export function getPrompterTools(): Tool[] {
+  return [readFileTool, writeFileTool, fetchUrlTool, thinkingTool, architectTool];
+}
+
 export function removeRedundantTools(tools: Tool[]) {
   const toolNames = new Set();
   return tools.filter((tool: Tool) => {

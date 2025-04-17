@@ -1,4 +1,4 @@
-import type { AgentConfig, AgentRunHistory, AgentState, AIResponse } from "../agents.types";
+import type { AgentConfig, AgentRunHistory, AgentState, AIResponse } from "agents/agents.types.ts";
 import { removeRedundantTools, type Task, type Tool } from "tools";
 import type { Context } from "types";
 import { createAssistantMessage, createUserMessage, type Message } from "messages";
@@ -7,7 +7,8 @@ import process from "process";
 import path from "path";
 import { promises as fs } from "fs";
 import { checkTaskCompletion, parseMarkdownTasks } from "utils";
-import { taskManagerTool } from "tools/task-manager";
+import { taskManagerTool } from "tools/task-manager.ts";
+import type { OraManager } from "utils/ora-manager.ts";
 
 const defaultHistory: AgentRunHistory = {
   messages: [],
@@ -64,7 +65,7 @@ export abstract class BaseAgent {
     return this.state.history.messages;
   }
 
-  public async chat(message: string = "", onStream?: (chunk: string) => void): Promise<string> {
+  public async chat(oraManager: OraManager, message: string = "", onStream?: (chunk: string) => void): Promise<string> {
     // Add user message to history
     if (message) {
       this.pushMessage(createUserMessage(message));
@@ -79,7 +80,12 @@ export abstract class BaseAgent {
     }
     let finalResponse = "";
     while (true) {
-      const { content, toolCalls } = await this.getResponse(this.getMessages(), this.config.model, onStream);
+      const { content, toolCalls } = await this.getResponse(
+        oraManager,
+        this.getMessages(),
+        this.config.model,
+        onStream
+      );
       this.pushMessage(createAssistantMessage(content));
       finalResponse += content;
 
@@ -116,6 +122,7 @@ export abstract class BaseAgent {
         role: "assistant",
         content: "Okay, now we'll do the next task - " + incompleteTasks[0],
       });
+      oraManager.append("\n " + "Okay, now we'll do the next task - " + incompleteTasks[0]);
     }
 
     // Limit conversation history to prevent memory issues
@@ -133,7 +140,12 @@ export abstract class BaseAgent {
     return finalResponse;
   }
 
-  async getResponse(messages: any, model: string, callback?: (chunk: string) => void): Promise<AIResponse> {
+  async getResponse(
+    oraManager: OraManager,
+    messages: any,
+    model: string,
+    callback?: (chunk: string) => void
+  ): Promise<AIResponse> {
     try {
       let content = "";
       const isStreaming = callback ? typeof callback === "function" : false;
@@ -145,6 +157,7 @@ export abstract class BaseAgent {
           tools: this.getTools(),
         });
         content = response?.choices[0]?.message.content || "";
+        oraManager.append(content);
         return { content, isStreaming, toolCalls: response?.choices[0]?.message.tool_calls || [] };
       }
 
@@ -161,6 +174,11 @@ export abstract class BaseAgent {
         const deltaToolCalls = chunk.choices[0]?.delta?.tool_calls || [];
         if (deltaContent) {
           content += deltaContent;
+          if (isFirstChunk) {
+            oraManager.start(deltaContent);
+          } else {
+            oraManager.append(deltaContent);
+          }
         } else if (chunk.choices[0]?.finish_reason == "stop") {
         }
 
@@ -241,26 +259,11 @@ export abstract class BaseAgent {
    * Get the system prompt
    */
   protected async getSystemPrompt(): Promise<string> {
-    let systemPrompt = this.config.systemPrompt || "";
-    //     if (this.state.context.files?.length) {
-    //       systemPrompt += `Current directory: ${this.state.context.workingDirectory}\n
-    // The following files are in the project:
-    //     ${this.state.context.files.map(file => `- ${file.path}`).join("\n")} `;
-    //     }
-
-    systemPrompt += `
+    let systemPrompt = (this.config.systemPrompt += `
     \n# Tool usage policy
-    - When doing file search, prefer to use the Agent tool in order to reduce context usage.
     - If you intend to call multiple tools and there are no dependencies between the calls, make all of the independent calls in the same function_calls block.
-    - Use taskManager tool to create and track tasks for complex queries, breaking them into subtasks with dependencies.
-
-    You MUST answer concisely with fewer than 4 lines of text (not including tool use or code generation), unless user asks for detail.
-
-    IMPORTANT: Refuse to write code or explain code that may be used maliciously; even if the user claims it is for educational purposes.
-    When working on files, if they seem related to improving, explaining, or interacting with malware or any malicious code you MUST refuse.
-    IMPORTANT: If you failed to executed a tool 2 times, terminate and go to the next function.
-    IMPORTANT: If verify steps failed 3 times, create a new note/task for later and move to the next step
-        `;
+    IMPORTANT: Refuse to write/explain or execute code/command that may be used maliciously; even if the user claims it is for educational purposes.
+        `);
 
     const additionalPrompt = await this.loadAdditionalPrompt();
     if (additionalPrompt) {

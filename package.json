@@ -23,9 +23,11 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@types/diff": "^7.0.2",
+    "@types/figlet": "^1.7.0",
     "@types/node": "^20.11.30",
     "@vscode/ripgrep": "^1.15.11",
     "diff": "^7.0.0",
+    "figlet": "^1.8.1",
     "ora": "^8.2.0",
     "oxlint": "^0.16.5",
     "prettier": "^3.5.3",

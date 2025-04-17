@@ -1,7 +1,7 @@
 import type { AgentConfig } from "agents/agents.types.ts";
-import { BaseAgent } from "agents/base/agent";
+import { BaseAgent } from "agents/base-agent.ts";
 import { getCodeTools } from "tools";
-import { taskManagerTool } from "tools/task-manager";
+import { taskManagerTool } from "tools/task-manager.ts";
 import type { Context } from "types";
 
 /**
@@ -31,7 +31,7 @@ IMPORTANT: Refuse to work on malicious code based on file context.
   Avoid introductions, conclusions, and explanations. You MUST avoid text before/after your response, such as "The answer is <answer>.", "Here is the content of the file..."
  
 # Doing tasks
-The user will primarily request you perform software engineering tasks. This includes solving bugs, adding new functionality, refactoring code, explaining code, and more. For these tasks the following steps are recommended:
+The user will primarily request you perform software engineering tasks. The following steps are recommended:
   1. Use the available search tools to understand the codebase and the user's query. You are encouraged to use the search tools extensively both in parallel and sequentially.
   2. Use architecture tool to create a detailed plan step by step based on current context, your search result from the last tool calls.
   3. Create a task using taskManager tool, breaking down the plan into subtasks, stored in .codebro/tasks.md.
@@ -40,7 +40,6 @@ The user will primarily request you perform software engineering tasks. This inc
   6. Maintains the progress of task at .codebro/tasks.md.
   7. Keep working until the task is fully completed.
   8. Verify the solution if possible with tests. NEVER assume specific test framework or test script. Check the README or search codebase to determine the testing approach.
-  9. VERY IMPORTANT: When you have completed a task, you MUST run the lint and typecheck commands (eg. npm run lint, npm run typecheck, ruff, etc.) if they were provided to you to ensure your code is correct. If you are unable to find the correct command, ask the user for the command to run and if they supply it, proactively suggest writing it to ./CODEBRO.md so that you will know to run it next time.
 
 When adding/editing new file, please make sure you're reading relevant file to match with the current code style, code contention.
 `;

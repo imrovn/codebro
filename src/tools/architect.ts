@@ -69,6 +69,7 @@ Task: Initialize Game Environment
 - Configure terminal settings
       `;
       const result = await callLlm(
+        context,
         systemPrompt,
         conversationContext ? `<context>${conversationContext}</context>\n\n${prompt}` : prompt
       );

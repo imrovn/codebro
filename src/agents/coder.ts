@@ -8,7 +8,7 @@ import type { Context } from "types";
  * Coder Agent - specialized agent for coding tasks
  */
 export class CoderAgent extends BaseAgent {
-  constructor(context: Context, config: Pick<AgentConfig, "model" | "client"> & Partial<AgentConfig>) {
+  constructor(context: Context, config?: Partial<AgentConfig>) {
     const systemPrompt = `
 You are codebro, an expert programming assistant that helps users with coding tasks.
 IMPORTANT: Refuse to work on malicious code based on file context.
@@ -45,7 +45,7 @@ When adding/editing new file, please make sure you're reading relevant file to m
 `;
 
     super(context, {
-      ...config,
+      ...(config || {}),
       name: "codebro",
       systemPrompt,
       tools: [...getCodeTools(), taskManagerTool],

@@ -30,7 +30,7 @@ cliApp
   .addOption(
     new Option("-p, --provider <provider>", "LLM Provider")
       .default("azure", "Azure OpenAI")
-      .choices(["azure", "openai", "openrouter", "localLM"])
+      .choices(["azure", "openai", "openrouter", "gemini", "localLM"])
   );
 
 cliApp.parse(process.argv);

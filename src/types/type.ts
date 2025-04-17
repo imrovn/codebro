@@ -1,10 +1,13 @@
 import type { ProjectState } from "tools";
+import type OpenAI from "openai";
 
 /**
  * Agent context
  */
 export interface Context {
+  model: string;
   workingDirectory: string;
+  client: OpenAI;
   memoryBank?: any;
   files?: File[];
   projectState?: ProjectState;

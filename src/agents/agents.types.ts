@@ -19,16 +19,7 @@ export interface AgentState {
   context: Context;
 }
 
-/**
- * Agent response
- */
-export interface AgentResponse {
-  response: string;
-}
-
 export interface AgentConfig {
-  client: OpenAI;
-  model: string;
   name: string;
   tools: Tool[];
   systemPrompt?: string;

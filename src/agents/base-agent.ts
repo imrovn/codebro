@@ -37,7 +37,7 @@ export abstract class BaseAgent {
       history: defaultHistory,
       context,
     };
-    this.client = config.client;
+    this.client = context.client;
     this.tools = removeRedundantTools([...(config.tools || []), taskManagerTool]);
     this.initializeState().catch(console.error);
   }
@@ -83,7 +83,7 @@ export abstract class BaseAgent {
       const { content, toolCalls } = await this.getResponse(
         oraManager,
         this.getMessages(),
-        this.config.model,
+        this.state.context.model,
         onStream
       );
       this.pushMessage(createAssistantMessage(content));

@@ -7,7 +7,7 @@ import type { Context } from "types";
  * Coder Agent - specialized agent for coding tasks
  */
 export class PromptEngineerAgent extends BaseAgent {
-  constructor(context: Context, config: Pick<AgentConfig, "model" | "client"> & Partial<AgentConfig>) {
+  constructor(context: Context, config?: Partial<AgentConfig>) {
     const systemPrompt = `
 You are an expert prompt engineer tasked with transforming short, vague, or underspecified user prompts into practical, effective, and category-optimized prompts that maximize the quality of the response from a large language model. Follow this structured process:
  1. **Understand the Prompt**:
@@ -62,7 +62,7 @@ Only generate optimized version of prompt, don't generate the result of that pro
 `;
 
     super(context, {
-      ...config,
+      ...(config || {}),
       name: "Prompt bro",
       systemPrompt,
       tools: getPrompterTools(),

@@ -1,10 +1,10 @@
-import { getClient } from "client";
-import { config } from "configs";
+import type { Context } from "types";
 
-export async function callLlm(systemPrompt: string, prompt: string): Promise<string> {
-  const client = getClient(config);
+export async function callLlm(context: Context, systemPrompt: string, prompt: string): Promise<string> {
+  const { model, client } = context;
+
   const response = await client.chat.completions.create({
-    model: config.model,
+    model,
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: prompt },

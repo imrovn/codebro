@@ -1,11 +1,10 @@
 #!/usr/bin/env node
-import { config, validateConfig } from "configs";
+import { createConfig } from "configs";
 import { gatherContext, makeLocalDirIfNotExists } from "utils";
 import * as readline from "node:readline/promises";
 import { cliApp } from "./cli.ts";
 import process from "process";
 import type { BaseAgent } from "agents/base-agent.ts";
-import { getClient } from "client";
 import { OraManager } from "utils/ora-manager.ts";
 import chalk from "chalk";
 import { getAgent } from "agents";
@@ -20,15 +19,13 @@ const COMMANDS = {
  * Main entry point for the CLI
  */
 export async function main() {
-  if (!validateConfig(config)) {
-    process.exit(1);
-  }
   makeLocalDirIfNotExists();
 
   const { mode, provider } = cliApp.opts();
-  const context = await gatherContext();
-  const client = getClient(config, provider);
-  const agent = getAgent(context, client, mode);
+  const config = createConfig(provider);
+  const context = await gatherContext(config);
+  const agent = getAgent(context, mode);
+
   printWelcomeMessage(mode, provider, config.model);
 
   await chatLoop(agent).catch(console.error);
@@ -47,7 +44,7 @@ const terminal = readline.createInterface({
   prompt: "> ",
 });
 
-async function chatLoop(agent: BaseAgent) {
+async function chatLoop(agent: BaseAgent, useStreaming: boolean = true) {
   const oraManager = new OraManager();
   oraManager.start("Setting up...");
   oraManager.succeed("Hi, how can I help you! Type your message (or 'exit' to quit)");
@@ -65,7 +62,7 @@ async function chatLoop(agent: BaseAgent) {
 
     oraManager.start("🤖 Thinking ...");
     try {
-      const onStream = config.useStreaming ? (chunk: string) => process.stdout.write(chunk) : undefined;
+      const onStream = useStreaming ? (chunk: string) => process.stdout.write(chunk) : undefined;
       const response = await agent.chat(oraManager, userInput, onStream);
       oraManager.succeed(response);
     } catch (error: any) {

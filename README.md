@@ -66,6 +66,13 @@ Example:
 bun run start --mode coder --provider openai
 ```
 
+### Wide range support LLM providers
+
+Codebro is currently support multiple LLM such as Azure OpenAI, OpenAI, Openrouter, Gemini or even Local LLM like LM
+studio or Ollama as long as their model support chat completion
+
+See [Configuration](#configuration) for more detail and system environment needed to start using.
+
 ### Interactive Commands
 
 - Type your coding query or task (e.g., "Create a REST API in TypeScript").
@@ -99,14 +106,6 @@ bun run start --mode coder --provider openai
    - [ ] Implement logic (subtask-789)
    ```
 
-## Configuration
-
-Edit `.env` to customize:
-
-- `CODEBRO_MODEL`: Specify the LLM model (e.g., `gemini-2.5-pro-exp-03-25`).
-- `USE_STREAMING`: Enable streaming responses (`true` or `false`).
-- Provider-specific settings (e.g., `OPENAI_API_BASE_URL`, `AZURE_OPENAI_API_VERSION`)
-
 ## Model Context Protocol (MCP)
 
 Codebro can use tools from MCP server via `mcp-config.ts` file.
@@ -135,6 +134,40 @@ export default {
 
 
 ```
+
+<a name="configuration"></a>
+
+## Configuration
+
+Edit `.env` to customize:
+
+- `CODEBRO_MODEL`: Specify the LLM model (e.g., `gpt-4o`).
+- `USE_STREAMING`: Enable streaming responses (`true` or `false`).
+
+Based on the provider setting of the CLI (`codebro -h`) default is `gpt-4o`, there are several env needed to able to
+use.
+
+### Azure OpenAI
+
+export AZURE_OPENAI_API_KEY=
+export AZURE_OPENAI_BASE_URL=
+
+### OpenAI
+
+export OPENAI_API_KEY=
+
+### localLLM
+
+export OPENAI_API_KEY=
+export OPENAI_API_BASE_URL=
+
+### Openrouter
+
+export OPENROUTER_API_KEY=
+
+### Gemini
+
+export GEMINI_API_KEY=
 
 ## Roadmap
 

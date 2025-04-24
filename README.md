@@ -115,6 +115,27 @@ MCP Resources: https://mcp.so/
 
 NOTE: Will load MCP config file from config folder instead of Typescript file
 
+Example:
+
+```javascript
+export default {
+  playwright: {
+    "command": "npx",
+    "args": ["@playwright/mcp@latest", "--headless"],
+  },
+  sequentialthinking: {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+  },
+  puppeteer: {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-puppeteer"],
+  },
+};
+
+
+```
+
 ## Roadmap
 
 - [x] Support tools from any MCP repo via configuration file

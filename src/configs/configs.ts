@@ -9,7 +9,7 @@ dotenv.config();
 // Default configuration
 const defaultConfig: Config = {
   apiKey: "",
-  model: process.env.CODEBRO_MODEL || "gemini-2.5-pro-exp-03-25",
+  model: process.env.CODEBRO_MODEL || "gpt-4o",
   baseURL: "",
   provider: "azure",
   maxFiles: 50,

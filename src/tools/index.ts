@@ -9,7 +9,6 @@ import { fetchUrlTool } from "tools/fetch-url.ts";
 import { thinkingTool } from "tools/think.ts";
 import { architectTool } from "tools/architect.ts";
 import { taskManagerTool } from "tools/task-manager.ts";
-import { proposeCodeTool } from "tools/propose-code.ts";
 
 export * from "./tools.types";
 
@@ -25,7 +24,7 @@ export function getCodeTools(): Tool[] {
     thinkingTool,
     architectTool,
     taskManagerTool,
-    proposeCodeTool,
+    // proposeCodeTool,
   ];
 }
 

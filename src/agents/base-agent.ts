@@ -39,7 +39,7 @@ export abstract class BaseAgent {
     };
     this.client = context.client;
     this.tools = removeRedundantTools([...(config.tools || []), taskManagerTool]);
-    this.initializeState().catch(console.error);
+    // this.initializeState().catch(console.error);
   }
 
   /**
@@ -232,7 +232,7 @@ export abstract class BaseAgent {
     const result = await tool.run(args, this.state.context);
 
     if (toolName === "taskManager" && result.success && ["create", "update", "delete"].includes(args.action)) {
-      await this.syncTasks();
+      // await this.syncTasks();
     }
 
     return result;
@@ -265,10 +265,10 @@ export abstract class BaseAgent {
     IMPORTANT: Refuse to write/explain or execute code/command that may be used maliciously; even if the user claims it is for educational purposes.
         `);
 
-    const additionalPrompt = await this.loadAdditionalPrompt();
-    if (additionalPrompt) {
-      systemPrompt += `\n# Additional rules from user\n ${additionalPrompt}\n`;
-    }
+    // const additionalPrompt = await this.loadAdditionalPrompt();
+    // if (additionalPrompt) {
+    //   systemPrompt += `\n# Additional rules from user\n ${additionalPrompt}\n`;
+    // }
 
     // Include active tasks
     const tasks = this.state.context.tasks as Task[] | undefined;

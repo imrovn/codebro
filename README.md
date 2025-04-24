@@ -107,9 +107,17 @@ Edit `.env` to customize:
 - `USE_STREAMING`: Enable streaming responses (`true` or `false`).
 - Provider-specific settings (e.g., `OPENAI_API_BASE_URL`, `AZURE_OPENAI_API_VERSION`)
 
+## Model Context Protocol (MCP)
+
+Codebro can use tools from MCP server via `mcp-config.ts` file.
+
+MCP Resources: https://mcp.so/
+
+NOTE: Will load MCP config file from config folder instead of Typescript file
+
 ## Roadmap
 
-- [ ] Support tools from any MCP repo via configuration file
+- [x] Support tools from any MCP repo via configuration file
 - [ ] Enhance memory management
 - [ ] Documentation eg. Changelog, changeset
 - [ ] Unit tests

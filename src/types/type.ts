@@ -1,4 +1,4 @@
-import type { ProjectState } from "tools";
+import type { ProjectState, Tool } from "tools";
 import type OpenAI from "openai";
 
 /**
@@ -15,6 +15,7 @@ export interface Context {
     conversations: Array<{ role: string; content: string; timestamp: string }>;
     lastUpdated: string;
   };
+  mcpTools?: Tool[];
 
   [key: string]: any;
 }

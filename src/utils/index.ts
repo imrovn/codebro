@@ -5,7 +5,6 @@ import { getRelevantFiles } from "filesystem";
 import { type Config } from "configs";
 import process from "process";
 import type { Task, ToolCallResponse } from "tools";
-import path from "node:path";
 import { v4 as uuidv4 } from "uuid";
 import fs from "node:fs";
 import { getClient } from "client";
@@ -81,24 +80,24 @@ export async function gatherContext(config: Config): Promise<Context> {
   };
 }
 
-export function makeLocalDirIfNotExists() {
-  const workingDirectory = process.cwd();
-  const localDir = path.join(workingDirectory, ".codebro");
-  try {
-    if (!fs.existsSync(localDir)) {
-      fs.mkdirSync(localDir);
-    }
-  } catch (err) {
-    console.error(err);
-  }
-}
+// export function makeLocalDirIfNotExists() {
+//   const workingDirectory = process.cwd();
+//   const localDir = path.join(workingDirectory, ".codebro");
+//   try {
+//     if (!fs.existsSync(localDir)) {
+//       fs.mkdirSync(localDir);
+//     }
+//   } catch (err) {
+//     console.error(err);
+//   }
+// }
 
 /**
  * Parse Markdown tasks from .codebro/tasks.md
  */
 export function parseMarkdownTasks(content: string): Task[] {
   const tasks: Task[] = [];
-  const taskSections = content.split(/^# Task: /m).slice(1);
+  const taskSections = content.split(/^(?:\s.*|.*|\*\*\s.*) Task: /m).slice(1);
 
   for (const section of taskSections) {
     const lines = section.split("\n");

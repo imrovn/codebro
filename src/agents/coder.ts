@@ -37,7 +37,7 @@ The user will primarily request you perform software engineering tasks. The foll
   3. Create a task using taskManager tool, breaking down the plan into subtasks, stored in .codebro/tasks.md.
   4. Implement the solution using all tools available to you.
   5. Update task status and output using taskManager tool as you progress. 
-  6. Maintains the progress of task at .codebro/tasks.md.
+<!--  6. Maintains the progress of task at .codebro/tasks.md.-->
   7. Keep working until the task is fully completed.
   8. Verify the solution if possible with tests. NEVER assume specific test framework or test script. Check the README or search codebase to determine the testing approach.
 
@@ -48,7 +48,7 @@ When adding/editing new file, please make sure you're reading relevant file to m
       ...(config || {}),
       name: "codebro",
       systemPrompt,
-      tools: [...getCodeTools(), taskManagerTool],
+      tools: [...getCodeTools(), taskManagerTool, ...(context.mcpTools || [])],
     });
   }
 }

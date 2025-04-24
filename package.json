@@ -21,6 +21,7 @@
     "prettier:fix": "prettier . --write"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.10.2",
     "@types/bun": "latest",
     "@types/diff": "^7.0.2",
     "@types/figlet": "^1.7.0",

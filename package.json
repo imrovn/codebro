@@ -3,13 +3,15 @@
   "version": "0.0.13",
   "module": "src/cli.ts",
   "type": "module",
-  "bin": "./dist/cli.js",
+  "bin": {
+    "codebro": "dist/cli.js"
+  },
   "files": [
     "dist"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/rovndev/codebro.git"
+    "url": "git+https://github.com/rovndev/codebro.git"
   },
   "scripts": {
     "dev": "bun run --watch src/cli.ts",

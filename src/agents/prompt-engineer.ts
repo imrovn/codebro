@@ -65,7 +65,11 @@ Only generate optimized version of prompt, don't generate the result of that pro
       ...(config || {}),
       name: "Prompt bro",
       systemPrompt,
-      tools: getPrompterTools(),
+      mode: "NORMAL",
+      tools: [
+        ...getPrompterTools(),
+        ...(context.mcpTools || []).filter(tool => tool.getDefinition().function.name.startsWith("puppeteer")),
+      ],
     });
   }
 }

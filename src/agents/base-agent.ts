@@ -1,12 +1,12 @@
-import type { AgentConfig, AgentRunHistory, AgentState, AIResponse } from "agents/agents.types.ts";
-import { removeRedundantTools, type Task, type Tool } from "tools";
+import type { AgentConfig, AgentMode, AgentRunHistory, AgentState, AIResponse } from "agents/agents.types.ts";
+import { formatToolsForPrompt, removeRedundantTools, type Task, type Tool } from "tools";
 import type { Context } from "types";
 import { createAssistantMessage, createUserMessage, type Message } from "messages";
 import type OpenAI from "openai";
 import process from "process";
 import path from "path";
 import { promises as fs } from "fs";
-import { checkTaskCompletion, parseMarkdownTasks } from "utils";
+import { parseMarkdownTasks } from "utils";
 import { taskManagerTool } from "tools/task-manager.ts";
 import type { OraManager } from "utils/ora-manager.ts";
 
@@ -20,6 +20,7 @@ export abstract class BaseAgent {
   protected state: AgentState;
   protected client: OpenAI;
   protected tools: Tool[];
+  protected mode: AgentMode = "PLAN";
 
   /**
    * Create a new agent
@@ -39,6 +40,10 @@ export abstract class BaseAgent {
     };
     this.client = context.client;
     this.tools = removeRedundantTools([...(config.tools || []), taskManagerTool]);
+
+    if (config.mode) {
+      this.mode = config.mode;
+    }
     // this.initializeState().catch(console.error);
   }
 
@@ -78,14 +83,20 @@ export abstract class BaseAgent {
         content: await this.getSystemPrompt(),
       });
     }
+
     let finalResponse = "";
     while (true) {
+      oraManager.start("🤖 Thinking ...");
+      await this.handleSystemPromptBasedOnMode();
       const { content, toolCalls } = await this.getResponse(
         oraManager,
         this.getMessages(),
         this.state.context.model,
         onStream
       );
+      if (content) {
+        oraManager.succeed(content);
+      }
       this.pushMessage(createAssistantMessage(content));
       finalResponse += content;
 
@@ -116,14 +127,14 @@ export abstract class BaseAgent {
       content: finalResponse,
     });
 
-    const { incompleteTasks, allCompleted } = checkTaskCompletion(this.state.context.tasks || []);
-    if (!allCompleted) {
-      this.pushMessage({
-        role: "assistant",
-        content: "Okay, now we'll do the next task - " + incompleteTasks[0],
-      });
-      oraManager.append("\n " + "Okay, now we'll do the next task - " + incompleteTasks[0]);
-    }
+    // const { incompleteTasks, allCompleted } = checkTaskCompletion(this.state.context.tasks || []);
+    // if (!allCompleted) {
+    //   this.pushMessage({
+    //     role: "assistant",
+    //     content: "Okay, now we'll do the next task - " + incompleteTasks[0],
+    //   });
+    //   oraManager.append("\n " + "Okay, now we'll do the next task - " + incompleteTasks[0]);
+    // }
 
     // Limit conversation history to prevent memory issues
     if (this.getMessages().length > 50) {
@@ -138,6 +149,14 @@ export abstract class BaseAgent {
     }
 
     return finalResponse;
+  }
+
+  async handleSystemPromptBasedOnMode(): Promise<void> {
+    this.state.history.messages.shift();
+    this.state.history.messages.unshift({
+      role: "system",
+      content: await this.getSystemPrompt(),
+    });
   }
 
   async getResponse(
@@ -174,12 +193,9 @@ export abstract class BaseAgent {
         const deltaToolCalls = chunk.choices[0]?.delta?.tool_calls || [];
         if (deltaContent) {
           content += deltaContent;
-          if (isFirstChunk) {
-            oraManager.start(deltaContent);
-          } else {
-            oraManager.append(deltaContent);
-          }
+          oraManager.append(deltaContent);
         } else if (chunk.choices[0]?.finish_reason == "stop") {
+          // stop signal
         }
 
         // Handle tool calls
@@ -230,6 +246,9 @@ export abstract class BaseAgent {
 
     const args = JSON.parse(toolCall.function.arguments);
     const result = await tool.run(args, this.state.context);
+    if (toolName === "agentModeSwitch" && args.mode) {
+      this.mode = args.mode;
+    }
 
     if (toolName === "taskManager" && result.success && ["create", "update", "delete"].includes(args.action)) {
       // await this.syncTasks();
@@ -259,11 +278,14 @@ export abstract class BaseAgent {
    * Get the system prompt
    */
   protected async getSystemPrompt(): Promise<string> {
-    let systemPrompt = (this.config.systemPrompt += `
+    let systemPrompt: string = (this.mode == "NORMAL" ? this.config.systemPrompt : this.config.plannerPrompt) || "";
+    systemPrompt.replace("@@TOOLS_DECLARE@@", this.tools.length > 0 ? formatToolsForPrompt(this.tools) : "");
+    systemPrompt += `
     \n# Tool usage policy
     - If you intend to call multiple tools and there are no dependencies between the calls, make all of the independent calls in the same function_calls block.
     IMPORTANT: Refuse to write/explain or execute code/command that may be used maliciously; even if the user claims it is for educational purposes.
-        `);
+`;
+    systemPrompt += "You can switch between either NORMAL or PLAN mode by using agentModeSwitch \n";
 
     // const additionalPrompt = await this.loadAdditionalPrompt();
     // if (additionalPrompt) {

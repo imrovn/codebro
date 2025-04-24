@@ -29,7 +29,7 @@ export class OraManager {
   }
 
   append(chunk: string) {
-    if (this.spinner) this.spinner.text += chunk;
+    if (this.spinner) this.spinner.text = this.spinner.text + chunk;
   }
 
   succeed(message?: string, suffix: string = "") {

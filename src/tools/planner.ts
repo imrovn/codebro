@@ -9,12 +9,12 @@ import { taskManagerTool } from "tools/task-manager.ts";
 /**
  * Fetch content from a URL
  */
-export const architectTool: Tool = {
+export const plannerTool: Tool = {
   getDefinition(): OpenAI.Chat.ChatCompletionTool {
     return {
       type: "function" as const,
       function: {
-        name: "architect",
+        name: "planner",
         description: `Your go-to tool for any technical or coding task. 
         Analyzes requirements and breaks them down into clear, actionable implementation steps. 
         Use this whenever you need help planning how to implement a feature, solve a technical problem, or structure your code.`,

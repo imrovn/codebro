@@ -144,7 +144,7 @@ export async function createToolsFromMcpConfig({
               return {
                 type: "function" as const,
                 function: {
-                  name: toolId,
+                  name: `${mcpName}-${toolId}`,
                   description: tool.description || `${mcpName} ${toolId} operation`,
                   parameters: tool.inputSchema as {
                     type: "object";

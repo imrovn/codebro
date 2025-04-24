@@ -22,7 +22,9 @@ export interface AgentState {
 export interface AgentConfig {
   name: string;
   tools: Tool[];
+  mode?: AgentMode;
   systemPrompt?: string;
+  plannerPrompt?: string;
   description?: string;
   memoryBankDir?: string;
   temperature?: number;
@@ -34,3 +36,5 @@ export interface AIResponse {
   toolCalls: OpenAI.Chat.ChatCompletionMessageToolCall[];
   isStreaming?: boolean;
 }
+
+export type AgentMode = "PLAN" | "NORMAL";

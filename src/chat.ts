@@ -12,6 +12,9 @@ import figlet from "figlet";
 import mcpConfig from "../mcp-config.ts";
 import { createToolsFromMcpConfig } from "mcp/mcp.ts";
 
+const controller = new AbortController();
+const signal = controller.signal;
+
 // Define CLI commands
 const COMMANDS = {
   EXIT: ["exit", "quit", "bye"],
@@ -61,6 +64,12 @@ async function chatLoop(agent: BaseAgent, useStreaming: boolean = true) {
     }
 
     oraManager.start("🤖 Thinking ...");
+
+    signal.addEventListener("abort", () => {
+      oraManager.succeed("Bye bye !");
+      process.exit(1);
+    });
+
     try {
       const onStream = useStreaming ? (chunk: string) => process.stdout.write(chunk) : undefined;
       const response = await agent.chat(oraManager, userInput, onStream);

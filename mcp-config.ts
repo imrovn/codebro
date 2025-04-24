@@ -7,4 +7,8 @@ export default {
     "command": "npx",
     "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
   },
+  puppeteer: {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-puppeteer"],
+  },
 };

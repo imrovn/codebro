@@ -27,6 +27,7 @@ export async function main() {
   const context = await gatherContext(config);
   const agent = getAgent(context, mode);
   printWelcomeMessage(mode, provider, config.model);
+
   await chatLoop(agent).catch(console.error);
 }
 
@@ -50,6 +51,13 @@ async function chatLoop(agent: BaseAgent, useStreaming: boolean = true) {
   while (true) {
     const userInput = (await terminal.question(chalk.blue("\nYou: "))).trim();
 
+    // Handle SIGINT (Ctrl+C)
+    process.on("SIGINT", () => {
+      console.log("exitttt");
+      oraManager.succeed("Bye bye !");
+      process.exit(1);
+    });
+
     if (!userInput) {
       continue;
     }
@@ -60,11 +68,6 @@ async function chatLoop(agent: BaseAgent, useStreaming: boolean = true) {
     }
 
     oraManager.start("🤖 Thinking ...");
-
-    signal.addEventListener("abort", () => {
-      oraManager.succeed("Bye bye !");
-      process.exit(1);
-    });
 
     try {
       const onStream = useStreaming ? (chunk: string) => process.stdout.write(chunk) : undefined;

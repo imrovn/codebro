@@ -26,14 +26,11 @@ export function getCodeTools(): Tool[] {
     agentModeSwitchTool,
     plannerTool,
     webSearchTool,
-    // taskManagerTool,
-    // proposeCodeTool,
   ];
 }
 
 export function getPrompterTools(): Tool[] {
-  return [readFileTool, writeFileTool, fetchUrlTool, thinkingTool];
-  // return [readFileTool, writeFileTool, fetchUrlTool, thinkingTool, plannerTool];
+  return [readFileTool, writeFileTool, fetchUrlTool, thinkingTool, webSearchTool];
 }
 
 export function removeRedundantTools(tools: Tool[], excludeTools: string[] = []) {

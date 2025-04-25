@@ -3,6 +3,7 @@ import type OpenAI from "openai";
 import { callLlm } from "utils/llm.ts";
 import { OraManager } from "utils/ora-manager.ts";
 import type { AgentContext } from "agents";
+import chalk from "chalk";
 
 /**
  * Fetch content from a URL
@@ -39,7 +40,7 @@ export const plannerTool: Tool = {
   async run(args, context: AgentContext): Promise<any> {
     const oraManager = new OraManager();
     const { prompt, context: conversationContext } = args;
-    oraManager.startTool("Planning architecture...", `\t ${prompt}`);
+    oraManager.startTool("Planning architecture...", chalk.dim(`\t ${prompt}`));
     try {
       const systemPrompt = `
       You are an expert software architect. Your role is to analyze technical requirements and produce clear, actionable implementation plans.

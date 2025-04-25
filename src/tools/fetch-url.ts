@@ -18,22 +18,22 @@ export const fetchUrlTool: Tool = {
         name: "fetchUrl",
         description: `Fetches content from a specified URL and extracts relevant text to avoid context overload. Returns clean, readable content or an error message if the fetch fails.
 
-**Usage Instructions**:
-- **Purpose**: Use to retrieve specific web content (e.g., documentation, tutorials) for tasks or prompt optimization.
-- **URL Selection**:
+Usage Instructions:
+- Purpose: Use to retrieve specific web content (e.g., documentation, tutorials) for tasks or prompt optimization.
+- URL Selection:
   - Prefer URLs from webSearch results, prioritizing reputable sources (e.g., official docs, trusted blogs).
   - Ensure the URL is valid and accessible (starts with http:// or https://).
-- **Content Management**:
+- Content Management:
   - Content is truncated to maxContentLength (default: 10,000 characters) to prevent token overload.
   - Only main content (e.g., article, main, or paragraph text) is extracted, excluding boilerplate (e.g., headers, footers, ads).
   - Use maxContentLength to balance detail and context size (e.g., 5,000 for short snippets, 20,000 for detailed pages).
-- **Timeout**:
+- Timeout:
   - Default is 5 seconds to avoid hanging on slow websites. Adjust timeout for unreliable networks.
-- **Best Practices**:
+- Best Practices:
   - Combine with webSearch to fetch content from top 1–3 URLs (as instructed in agent system prompts).
   - Use with writeFile to save content for later use (e.g., "Fetch content and save to notes.md").
   - If content is too large or fetch fails, rely on webSearch snippets or try another URL.
-- **Example**:
+- Example:
   - Query: "Fetch content from https://reactjs.org/docs/hooks-intro.html" → Returns extracted Hooks documentation text, truncated to 10,000 characters.`,
         parameters: {
           type: "object",

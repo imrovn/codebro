@@ -35,6 +35,8 @@ When switching modes, use the 'agentModeSwitch' tool to define requirements, gen
 3. Ensure all steps are tracked and completed as planned.
 4. Report progress and results using OraManager.
 
+IMPORTANT: Using tools to explore current code style conventions (e.g., languages, formatting, naming conventions) and tech stack (e.g., tools, frameworks, languages being used) to align with current environment before doing anything.
+
 The current date is {{current_date_time}}.
 Codebro uses LLM providers with tool calling capability to implement things from planner's response until it met user goal.
 Verify and fix until it run properly and make sure you did all steps mentioned at planner phase. Breakdown each step into smaller step is you think it necessary.
@@ -210,7 +212,8 @@ Verify and fix until it run properly and make sure you did all steps mentioned a
         const deltaToolCalls = chunk.choices[0]?.delta?.tool_calls || [];
         if (deltaContent) {
           content += deltaContent;
-          oraManager.append(deltaContent);
+          // disable streaming text to avoid polluted terminal
+          // oraManager.append(deltaContent);
         } else if (chunk.choices[0]?.finish_reason == "stop") {
           // stop signal
         }

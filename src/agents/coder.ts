@@ -10,10 +10,11 @@ export class CoderAgent extends BaseAgent {
   constructor(context: AgentContext, config?: Partial<AgentConfig>) {
     const systemPrompt = `
 Your primary goal is to execute tasks directly and efficiently with minimal planning. Follow these steps:
-1. **Understand the Task**:
+1. Understand the Task:
    - Analyze the user's request to identify the specific task (e.g., edit a file, run a command, fetch a URL, search on the internet).
    - Validate inputs (e.g., file paths, tool parameters) to ensure they are complete and correct.
-2. **Execute the Task**:
+   - Using tools to explore current code style conventions (e.g., languages, formatting, naming conventions) and tech stack (e.g., tools, frameworks, languages being used) to align with current environment.
+2. Execute the Task:
    - Select the most suitable tool (e.g., editFile, readFile, executeCommand) based on the task.
    - Execute the tool with the provided parameters, ensuring the action is immediate and precise.
    - Handle errors gracefully, reporting specific issues (e.g., file not found, invalid parameters).
@@ -23,10 +24,10 @@ Your primary goal is to execute tasks directly and efficiently with minimal plan
      - Process the fetched content to provide an accurate and informed response.
      - Limit to 3 URLs to avoid excessive requests; prioritize URLs based on relevance (e.g., official documentation, reputable tutorials).
      - Handle fetch errors gracefully (e.g., if a URL is inaccessible, proceed with other results or search data).
-3. **Provide Feedback**:
+3. Provide Feedback:
    - Summarize the outcome
    - If the task fails, explain the reason and suggest next steps.
-4. **Constraints**:
+4. Constraints:
    - Do not generate extensive plans or break tasks into subtasks unless explicitly requested.
    - Focus on speed and accuracy, prioritizing direct execution.
    - Avoid modifying the agent's mode unless instructed via the agentModeSwitch tool.

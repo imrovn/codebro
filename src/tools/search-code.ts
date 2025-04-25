@@ -17,13 +17,34 @@ export const searchCodeTool: Tool = {
       type: "function" as const,
       function: {
         name: "searchCode",
-        description: `
-         Fast content search tool that works with any codebase size
-- Searches file contents using regular expressions
-- Supports full regex syntax (eg. "log.*Error", "function\\s+\\w+", etc.)
-- Filter files by pattern with the include parameter (eg. "*.js", "*.{ts,tsx}")
-- Returns matching file paths sorted by modification time
-- Use this tool when you need to find files containing specific patterns
+        description: `Searches the codebase for specific patterns or keywords using ripgrep (rg), returning matching lines with context. Use this tool to efficiently analyze and explore the project’s structure, conventions, and purpose by searching for relevant code, comments, or configurations.
+
+Usage Instructions:
+- Purpose: Use to locate code, configurations, or comments that reveal the project’s purpose, tech stack, coding conventions, or specific functionality (e.g., API endpoints, React components, database schemas).
+- Query Tips:
+  - Craft precise queries to target specific elements (e.g., "useState" for React hooks, "express.Router" for Express routes, or "TODO" for development notes).
+  - Use regex patterns for advanced searches (e.g., "\\bclass\\b.*Controller" for controller classes).
+  - Include file extensions or patterns to narrow scope (e.g., "*.ts" for TypeScript files, "package.json" for dependencies).
+  - Search for comments or documentation (e.g., "//\\s*TODO" or "@desc" to understand intent or pending tasks).
+- Context Analysis:
+  - Before searching, use \`getProjectStructure\` to understand the codebase layout and identify relevant directories or files (e.g., \`src/api\` for backend logic).
+  - Combine with \`readFile\` to inspect full file contents of search results for deeper context (e.g., after finding a match in \`src/api.ts\`, read the file to understand its role).
+  - Use results to infer project purpose, such as identifying frameworks (e.g., search for "ReactDOM" to confirm React usage) or patterns (e.g., "async function" for async operations).
+- Max Results:
+  - Default is 10; max is 50. Adjust \`maxResults\` based on query specificity (e.g., use 5 for targeted searches like "useEffect", 20 for broader searches like "function").
+  - If results are truncated, refine the query or use file patterns to focus on relevant files.
+- Output:
+  - Returns a list of matches with file paths, line numbers, and snippets, formatted for easy reading.
+  - Use the \`results\` array programmatically (e.g., pass to \`writeFile\` to save findings or \`taskManager\` to create follow-up tasks).
+- Best Practices:
+  - Start with broad searches to understand the project (e.g., "import" to map dependencies, "interface" to find TypeScript types).
+  - Narrow searches based on initial findings (e.g., after finding React imports, search "useState" in \`*.tsx\` files).
+  - Combine with \`webSearch\` or \`fetchUrl\` for external context if internal code lacks clarity (e.g., search for a library’s usage then fetch its documentation).
+  - Use results to align with project conventions (e.g., match existing code style or naming conventions before proposing edits).
+- Example:
+  - Query: "Search for 'express.Router' in *.ts" → Returns Express route definitions to understand API structure.
+  - Query: "Search for '//\\s*TODO' in src/*" → Identifies pending tasks or developer notes to infer project goals.
+  - Follow-up: Use \`readFile\` on matched files to analyze full context, then \`proposeCode\` to address TODOs.
 `,
         parameters: {
           type: "object",

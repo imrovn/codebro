@@ -5,6 +5,7 @@ import path from "node:path";
 import * as child_process from "node:child_process";
 import * as util from "node:util";
 import { OraManager } from "utils/ora-manager";
+import chalk from "chalk";
 
 // Promisify exec
 const execAsync = util.promisify(child_process.exec);
@@ -45,7 +46,7 @@ export const executeCommandTool: Tool = {
     const oraManager = new OraManager();
     const { command, workingDir = ".", timeout = 10000 } = args;
     const cwd = path.resolve(context.workingDirectory, workingDir);
-    oraManager.startTool("Executing command...", "\t " + command);
+    oraManager.startTool("Executing command...", chalk.dim("\t " + command));
 
     // Security check - don't allow dangerous commands
     if (isForbiddenCommand(command)) {

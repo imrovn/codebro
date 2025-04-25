@@ -1,14 +1,15 @@
 import type { Tool } from "tools/tools.types.ts";
 import type OpenAI from "openai";
-import { dirname, isAbsolute, resolve } from "node:path";
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
-import { writeFile } from "node:fs/promises";
-import { type Hunk, structuredPatch } from "diff";
+import path from "node:path";
+import fs from "node:fs";
 import { formatSuffix, OraManager } from "utils/ora-manager";
 import type { AgentContext } from "agents";
+import { getPatch } from "tools/propose-code.ts"; // Import getPatch for diff
+import chalk from "chalk"; // For formatting diff output
 
 /**
- * Edit file in the project
+ * Edit a file in the project by replacing a searchString with newString
+ * and display the diff of changes made.
  */
 export const editFileTool: Tool = {
   getDefinition(): OpenAI.Chat.ChatCompletionTool {
@@ -16,40 +17,48 @@ export const editFileTool: Tool = {
       type: "function" as const,
       function: {
         name: "editFile",
-        description: `
-This tool edits a file by replacing a specific string with new content, preserving the entire original file content.
-For moving or renaming files, use the 'executeCommand' tool with 'mv'. For overwriting entire files, use the 'writeFile' tool.
+        description: `Edits a file by replacing a specified searchString with newString. Displays a diff of the changes made to show added and removed lines. Overwrites the existing file if it exists.
 
-The tool replaces ONE occurrence of oldString with newString in the specified file, ensuring the final file is complete and idiomatic.
-If multiple replacements are needed, make separate calls, each uniquely identifying the instance with extensive context.
-When making edits:
-   - Ensure the edit results in correct, idiomatic code.
-   - Do not leave the code in a broken state.
-   - Use absolute file paths (starting with /).
-   - Preserve all original content except the replaced section.
-
-To create a new file:
-   - Use an empty oldString and provide the full content as newString.
-
-Multiple edits to the same file should be batched in a single message with multiple calls to this tool.
+Usage Instructions:
+- Purpose: Use to make precise code or content changes in a file, such as fixing bugs, updating configurations, or modifying logic.
+- Parameters:
+  - path: Provide a project-relative or absolute path to the target file.
+  - searchString: Specify the exact string to replace (must match file contents, including whitespace and indentation). Use an empty string to overwrite the entire file.
+  - newString: Provide the new content to insert in place of searchString.
+- Output:
+  - Returns success status, file path, and a formatted diff showing changes (added lines in green, removed lines in red).
+  - The diff includes line numbers and context for clarity, similar to git diff.
+- Best Practices:
+  - Use \`readFile\` first to verify the file’s contents and ensure searchString matches.
+  - Validate the path using \`getProjectStructure\` to align with project conventions.
+  - Combine with \`proposeCode\` for complex edits requiring planning.
+- Example:
+  - Query: Edit src/api.ts to replace "getUsers()" with "fetchUsers()"
+  - Result: Updates the file and shows a diff with removed (-getUsers()) and added (+fetchUsers()) lines.
 `,
         parameters: {
           type: "object",
           properties: {
             path: {
               type: "string",
-              description: "The absolute path to the file to modify (must be absolute, not relative)",
+              description: "Path to the file, relative to the project root or absolute",
             },
-            oldString: {
+            searchString: {
               type: "string",
-              description: "The exact text to replace (must match file contents, including whitespace and indentation)",
+              description:
+                "The exact string to replace (must match file contents, including whitespace). Empty string to overwrite entire file.",
             },
             newString: {
               type: "string",
-              description: "The new text to insert in place of oldString",
+              description: "The new string to insert in place of searchString",
+            },
+            createDirs: {
+              type: "boolean",
+              description: "Whether to create parent directories if they don't exist",
+              default: true,
             },
           },
-          required: ["path", "oldString", "newString"],
+          required: ["path", "searchString", "newString"],
           additionalProperties: false,
         },
       },
@@ -57,100 +66,85 @@ Multiple edits to the same file should be batched in a single message with multi
   },
 
   async run(args, context: AgentContext): Promise<any> {
-    const { path: filePath, oldString, newString } = args;
-    const cwd = context.workingDirectory;
+    const { path: filePath, searchString, newString, createDirs = true } = args;
     const oraManager = new OraManager();
-    try {
-      const fullFilePath = isAbsolute(filePath) ? filePath : resolve(cwd, filePath);
-      const dir = dirname(fullFilePath);
-      const originalFile = existsSync(fullFilePath) ? readFileSync(fullFilePath, "utf8") : "";
-      oraManager.startTool(`Editing file...`, formatSuffix(fullFilePath));
+    oraManager.startTool(`Editing file: ${filePath}`, formatSuffix(filePath));
+    const cwd = context.workingDirectory;
+    const absolutePath = path.resolve(cwd, filePath);
 
-      // Validate oldString exists if not creating a new file
-      if (oldString && originalFile && !originalFile.includes(oldString)) {
-        oraManager.fail(`oldString not found in file: ${oldString}`);
-        throw new Error(`oldString not found in file: ${oldString}`);
+    try {
+      // Read original file content or initialize empty if it doesn't exist
+      const originalContent = fs.existsSync(absolutePath) ? fs.readFileSync(absolutePath, "utf-8") : "";
+
+      // Validate searchString exists if not overwriting entire file
+      if (searchString && originalContent && !originalContent.includes(searchString)) {
+        oraManager.fail(`searchString not found in file: ${searchString}`);
+        return {
+          success: false,
+          error: `searchString not found in file: ${searchString}`,
+        };
       }
 
-      oraManager.update("Applying patch...");
-      mkdirSync(dir, { recursive: true });
-      const { patch, updatedFile } = applyEdit(originalFile, oldString, newString);
-      console.log("\npatch: ", patch);
-      await writeFile(fullFilePath, updatedFile, { encoding: "utf8", flush: true });
+      // Create parent directories if they don't exist
+      if (createDirs) {
+        const dirPath = path.dirname(absolutePath);
+        fs.mkdirSync(dirPath, { recursive: true });
+      }
 
-      oraManager.succeed(`File edited successfully. `, formatSuffix(fullFilePath));
+      // Apply the edit
+      const updatedContent = searchString ? originalContent.replace(searchString, newString) : newString;
+
+      // Compute the diff
+      const diffHunks = getPatch({
+        filePath,
+        fileContents: originalContent,
+        oldStr: originalContent,
+        newStr: updatedContent,
+      });
+
+      // Format the diff for display
+      const formattedDiff = formatDiff(diffHunks);
+
+      // Write the updated content to the file
+      fs.writeFileSync(absolutePath, updatedContent, "utf-8");
+
+      oraManager.succeed(`File edited successfully: ${filePath}\n Content changed: ${formattedDiff}\n`);
       return {
         success: true,
         path: filePath,
-        oldString,
-        newString,
-        message: `File edited successfully`,
-        patch,
+        message: `File edited successfully: ${filePath}`,
+        diff: formattedDiff, // Include formatted diff in output
       };
     } catch (error: any) {
-      oraManager.fail("File editing failed due to error: " + +error.message);
-      return { error: error.message || "Failed to edit file" };
+      oraManager.fail(`Failed to edit file: ${filePath} (${error.message || error})`);
+      return {
+        success: false,
+        error: error.message || `Failed to edit file: ${filePath}`,
+      };
     }
   },
 };
 
-export function applyEdit(
-  originalFile: string,
-  oldString: string,
-  newString: string
-): { patch: Hunk[]; updatedFile: string } {
-  let updatedFile: string;
-
-  if (oldString === "") {
-    // Create new file
-    updatedFile = newString;
-  } else {
-    // Edit existing file
-    if (!originalFile.includes(oldString)) {
-      throw new Error("oldString not found in file");
-    }
-    updatedFile = originalFile.replace(oldString, newString);
-    if (updatedFile === originalFile) {
-      throw new Error("No changes applied; oldString matched but replacement failed");
-    }
+/**
+ * Format diff hunks for CLI display using chalk
+ */
+function formatDiff(hunks: Array<{ oldStart: number; newStart: number; lines: string[] }>): string {
+  if (!hunks.length) {
+    return chalk.yellow("No changes detected.");
   }
 
-  const patch = getPatch({
-    filePath: "file",
-    fileContents: originalFile,
-    oldStr: originalFile,
-    newStr: updatedFile,
-  });
-
-  return { patch, updatedFile };
-}
-
-const AMPERSAND_TOKEN = "<<:AMPERSAND_TOKEN:>>";
-const DOLLAR_TOKEN = "<<:DOLLAR_TOKEN:>>";
-
-export function getPatch({
-  filePath,
-  fileContents,
-  oldStr,
-  newStr,
-}: {
-  filePath: string;
-  fileContents: string;
-  oldStr: string;
-  newStr: string;
-}): Hunk[] {
-  return structuredPatch(
-    filePath,
-    filePath,
-    oldStr.replaceAll("&", AMPERSAND_TOKEN).replaceAll("$", DOLLAR_TOKEN),
-    newStr.replaceAll("&", AMPERSAND_TOKEN).replaceAll("$", DOLLAR_TOKEN),
-    undefined,
-    undefined,
-    { context: 3 }
-  )
-    .hunks.filter(h => h?.lines?.length > 0)
-    .map(h => ({
-      ...h,
-      lines: h.lines.map(l => l.replaceAll(AMPERSAND_TOKEN, "&").replaceAll(DOLLAR_TOKEN, "$")),
-    }));
+  let output = "\n";
+  for (const hunk of hunks) {
+    output += chalk.cyan(`@@ -${hunk.oldStart},${hunk.lines.length} +${hunk.newStart},${hunk.lines.length} @@\n`);
+    for (const line of hunk.lines) {
+      if (line.startsWith("+")) {
+        output += chalk.green(line) + "\n";
+      } else if (line.startsWith("-")) {
+        output += chalk.red(line) + "\n";
+      } else {
+        output += chalk.white(line) + "\n";
+      }
+    }
+  }
+  return output.trim();
 }

@@ -13,23 +13,23 @@ export const webSearchTool: Tool = {
         name: "webSearch",
         description: `Performs a web search using either DuckDuckGo or Brave Search to fetch real-time information. Returns a list of results with titles, URLs, and snippets.
 
-**Usage Instructions**:
-- **Purpose**: Use to retrieve current web information (e.g., tutorials, documentation, news) for coding tasks or research.
-- **Query Tips**:
+Usage Instructions:
+- Purpose: Use to retrieve current web information (e.g., tutorials, documentation, news) for coding tasks or research.
+- Query Tips:
   - Write clear, specific queries (e.g., "TypeScript async await best practices" instead of "TypeScript").
   - Use keywords or phrases as you would in a search engine.
-- **Max Results**:
+- Max Results:
   - Default is 10; max is 50. Set maxResults to balance detail and response time.
   - Results are truncated if exceeding maxResults, with a note indicating additional results.
-- **Output**:
+- Output:
   - Results are formatted as a numbered list with title (bold blue), URL (cyan), and snippet (white).
   - Use the returned results array for programmatic tasks (e.g., pass to writeFile or taskManager).
-- **Best Practices**:
+- Best Practices:
   - Analyze relevant context of current project before doing search.
   - Combine with readFile or writeFile to save results (e.g., "Search for Node.js tips and save to notes.md").
   - use fetchUrl tool go get the actual responsive and summary/validate response before go to the final answer. 
   - Avoid overly broad queries to prevent irrelevant results.
-- **Example**:
+- Example:
   - Query: "Search for React hooks tutorial" → Returns top tutorials with titles, URLs, and snippets.
   then using fetchURL tool to get the actual response.
 `,

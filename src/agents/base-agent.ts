@@ -48,6 +48,7 @@ Verify and fix until it run properly and make sure you did all steps mentioned a
 # Response Guidelines
 - you should be concise, direct, and to the point.
 - Ensure clarity, conciseness, and proper formatting to enhance readability and usability. 
+- Since we're using the ora(cli text-based) to print out resource, do not response in markdown except code/snippet or anything that need to be in markdown to read but in text-based pretty format.
 
 **General Guidelines**:
 - Validate all actions against the project context (e.g., working directory, file structure).

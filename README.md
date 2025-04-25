@@ -54,6 +54,14 @@ Start Codebro in interactive mode:
 bun run start
 ```
 
+Print help message for more detail usage
+
+```bash
+bun start -h
+# Or via executable bin
+codebro -h
+```
+
 ### Command-Line Options
 
 - `--mode <mode>`: Choose the assistant mode (`coder` or `prompter`). Default: `coder`.
@@ -66,7 +74,22 @@ Example:
 bun run start --mode coder --provider openai
 ```
 
-### Wide range support LLM providers
+## Agent Mode Switching
+
+Codebro supports two agent modes:
+
+- **EXECUTE**: Optimized for direct task execution (e.g., editing files, running commands).
+- **PLAN**: Focused on planning and breaking down tasks before execution (e.g., architecting features).
+
+To switch modes, use the `agentModeSwitch` tool via the CLI:
+
+```bash
+You: Switch to PLAN mode to plan a new feature
+[tool] ✔ Switched agent mode to 'PLAN' for: Plan a new feature with step-by-step breakdown
+✔ The mode has been successfully switched to PLAN. Please provide details about the new feature to plan its implementation.
+```
+
+## Wide range support LLM providers
 
 Codebro is currently support multiple LLM such as Azure OpenAI, OpenAI, Openrouter, Gemini or even Local LLM like LM
 studio or Ollama as long as their model support chat completion
@@ -83,27 +106,36 @@ See [Configuration](#configuration) for more detail and system environment neede
 1. **Plan a Feature**:
    Use the `architect` tool to break down a task into steps:
    ```
-   You: Create a simple REST API
-   Codebro: Planning architecture...
-   - Task: Set up project structure
-   - Task: Define API routes
-   - Task: Implement endpoints
+
+You: Create a simple REST API
+Codebro: Planning architecture...
+
+- Task: Set up project structure
+- Task: Define API routes
+- Task: Implement endpoints
+
    ```
 
 2. **Edit Code**:
    Propose and apply code changes:
    ```
-   You: Add a GET endpoint to fetch users
-   Codebro: Proposing code edit... File edited successfully: src/api.ts
+
+You: Add a GET endpoint to fetch users
+Codebro: Proposing code edit... File edited successfully: src/api.ts
+
    ```
 
 3. **Manage Tasks**:
    Track progress in `.codebro/tasks.md`:
    ```
-   # Codebro Tasks
-   # Task: Implement GET /users (task-123)
-   - [x] Define route (subtask-456)
-   - [ ] Implement logic (subtask-789)
+
+# Codebro Tasks
+
+# Task: Implement GET /users (task-123)
+
+- [x] Define route (subtask-456)
+- [ ] Implement logic (subtask-789)
+
    ```
 
 ## Model Context Protocol (MCP)

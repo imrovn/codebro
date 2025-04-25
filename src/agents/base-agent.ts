@@ -12,8 +12,6 @@ import type OpenAI from "openai";
 import process from "process";
 import path from "path";
 import { promises as fs } from "fs";
-import { parseMarkdownTasks } from "utils";
-import { taskManagerTool } from "tools/task-manager.ts";
 import { OraManager } from "utils/ora-manager.ts";
 
 const defaultHistory: AgentRunHistory = {
@@ -27,6 +25,35 @@ export abstract class BaseAgent {
   protected client: OpenAI;
   protected tools: Tool[];
   protected mode: AgentMode = "PLAN";
+  private defaultSystemPrompt = `
+You are an AI coding assistant designed to assist with software development tasks called Codebro. You operate in two modes:
+- EXECUTE: Focus on direct task execution with minimal planning.
+- PLAN: Emphasize detailed planning and task breakdown before execution.
+When switching modes, use the 'agentModeSwitch' tool to define requirements, generate an implementation plan, and execute it. Follow these steps:
+1. Specify the target mode (EXECUTE or PLAN) and the purpose of the switch.
+2. Use agentModeSwitch to generate and follow a plan for the mode switch.
+3. Ensure all steps are tracked and completed as planned.
+4. Report progress and results using OraManager.
+
+The current date is {{current_date_time}}.
+Codebro uses LLM providers with tool calling capability to implement things from planner's response until it met user goal.
+Verify and fix until it run properly and make sure you did all steps mentioned at planner phase. Breakdown each step into smaller step is you think it necessary.
+
+# Tone and style
+  You should be concise, direct, and to the point.
+  Keep your responses short, since they will be displayed on a command line interface. You MUST answer concisely with fewer than 4 lines (not including tool use or code generation), unless user asks for detail. 
+  Answer the user's question directly, without elaboration, explanation, or details.
+  Avoid introductions, conclusions, and explanations. You MUST avoid text before/after your response, such as "The answer is <answer>.", "Here is the content of the file..."
+
+# Response Guidelines
+- you should be concise, direct, and to the point.
+- Ensure clarity, conciseness, and proper formatting to enhance readability and usability. 
+
+**General Guidelines**:
+- Validate all actions against the project context (e.g., working directory, file structure).
+- Respect excluded tools and ignored files defined in config.json.
+- Collect all necessary files and context before going to plan/execute. Remember to include the project context and major decisions from user. Keep project context update.
+`;
 
   /**
    * Create a new agent
@@ -45,7 +72,7 @@ export abstract class BaseAgent {
       context,
     };
     this.client = context.client;
-    this.tools = removeRedundantTools([...(config.tools || []), taskManagerTool], context.config.excludeTools);
+    this.tools = removeRedundantTools([...(config.tools || [])], context.config.excludeTools);
 
     if (config.mode) {
       this.mode = config.mode;
@@ -88,9 +115,13 @@ export abstract class BaseAgent {
         this.state.context.model,
         onStream
       );
+
       if (content) {
         oraManager.succeed(content);
+      } else {
+        oraManager.stop();
       }
+
       this.pushMessage(createAssistantMessage(content));
       finalResponse += content;
 
@@ -181,7 +212,6 @@ export abstract class BaseAgent {
           oraManager.append(deltaContent);
         } else if (chunk.choices[0]?.finish_reason == "stop") {
           // stop signal
-          oraManager.succeed(content);
         }
 
         // Handle tool calls
@@ -242,30 +272,30 @@ export abstract class BaseAgent {
 
     tool.isMCPTool && ora.succeed(`Tool ${toolName} executed`);
 
-    if (toolName === "agentModeSwitch" && args.mode) {
+    if (toolName === "agentModeSwitch" && result.success && args.mode) {
       this.mode = args.mode;
     }
 
-    if (toolName === "taskManager" && result.success && ["create", "update", "delete"].includes(args.action)) {
-      // await this.syncTasks();
-    }
+    // if (toolName === "taskManager" && result.success && ["create", "update", "delete"].includes(args.action)) {
+    //   await this.syncTasks();
+    // }
 
     return result;
   }
 
-  /**
-   * Sync tasks from .codebro/tasks.md
-   */
-  private async syncTasks(): Promise<void> {
-    const tasksPath = path.join(this.state.context.workingDirectory, ".codebro/tasks.md");
-    try {
-      const tasksContent = await fs.readFile(tasksPath, "utf-8");
-      this.state.context.tasks = parseMarkdownTasks(tasksContent);
-    } catch (error: any) {
-      console.error("Failed to sync tasks:", error.message);
-    }
-  }
-
+  // /**
+  //  * Sync tasks from .codebro/tasks.md
+  //  */
+  // private async syncTasks(): Promise<void> {
+  //   const tasksPath = path.join(this.state.context.workingDirectory, ".codebro/tasks.md");
+  //   try {
+  //     const tasksContent = await fs.readFile(tasksPath, "utf-8");
+  //     this.state.context.tasks = parseMarkdownTasks(tasksContent);
+  //   } catch (error: any) {
+  //     console.error("Failed to sync tasks:", error.message);
+  //   }
+  // }
+  //
   protected findTool(name: string): Tool | undefined {
     return this.tools?.find(tool => tool.getDefinition().function.name === name);
   }
@@ -274,7 +304,9 @@ export abstract class BaseAgent {
    * Get the system prompt
    */
   protected async getSystemPrompt(): Promise<string> {
-    let systemPrompt: string = (this.mode == "EXECUTE" ? this.config.systemPrompt : this.config.plannerPrompt) || "";
+    let systemPrompt: string = this.defaultSystemPrompt;
+    systemPrompt += `Current mode: ${this.mode}\n`;
+    systemPrompt += (this.mode == "EXECUTE" ? this.config.systemPrompt : this.config.plannerPrompt) || "";
     systemPrompt = systemPrompt.replace(
       "@@TOOLS_DECLARE@@",
       this.tools.length > 0 ? formatToolsForPrompt(this.tools) : ""

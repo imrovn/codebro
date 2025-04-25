@@ -7,7 +7,8 @@ import { editFileTool } from "tools/edit-file.ts";
 import { executeCommandTool } from "tools/exec-command.ts";
 import { fetchUrlTool } from "tools/fetch-url.ts";
 import { thinkingTool } from "tools/think.ts";
-import { agentModeSwitchTool } from "tools/agent-mode-swich.ts";
+import { agentModeSwitchTool } from "tools/agent-mode-switch.ts";
+import { plannerTool } from "tools/planner.ts";
 
 export * from "./tools.types";
 
@@ -22,7 +23,7 @@ export function getCodeTools(): Tool[] {
     fetchUrlTool,
     thinkingTool,
     agentModeSwitchTool,
-    // plannerTool,
+    plannerTool,
     // taskManagerTool,
     // proposeCodeTool,
   ];

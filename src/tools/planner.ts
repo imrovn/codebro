@@ -1,9 +1,7 @@
-import type { Task, Tool } from "tools/tools.types.ts";
+import type { Tool } from "tools/tools.types.ts";
 import type OpenAI from "openai";
 import { callLlm } from "utils/llm.ts";
 import { OraManager } from "utils/ora-manager.ts";
-import { v4 as uuidv4 } from "uuid";
-import { taskManagerTool } from "tools/task-manager.ts";
 import type { AgentContext } from "agents";
 
 /**
@@ -73,19 +71,19 @@ Task: Initialize Game Environment
         systemPrompt,
         conversationContext ? `<context>${conversationContext}</context>\n\n${prompt}` : prompt
       );
-      const tasks = parseTasks(result);
-      if (tasks.length > 0) {
-        for (const task of tasks) {
-          await taskManagerTool.run(
-            {
-              action: "create",
-              description: task.description,
-              subtasks: task.subtasks,
-            },
-            context
-          );
-        }
-      }
+      // const tasks = parseTasks(result);
+      // if (tasks.length > 0) {
+      //   for (const task of tasks) {
+      //     await taskManagerTool.run(
+      //       {
+      //         action: "create",
+      //         description: task.description,
+      //         subtasks: task.subtasks,
+      //       },
+      //       context
+      //     );
+      //   }
+      // }
 
       oraManager.succeed("Plan generated.", `\n ${result}`);
       return {
@@ -102,42 +100,42 @@ Task: Initialize Game Environment
   },
 };
 
-function parseTasks(content: string): Task[] {
-  const tasks: Task[] = [];
-  const taskSections = content.split(/^Task: /m).slice(1);
-
-  for (const section of taskSections) {
-    const lines = section.split("\n");
-    if (!lines.length) {
-      continue;
-    }
-
-    const descriptionMatch = lines[0]?.match(/^(.*) \((task-[^\)]+)\)/);
-    if (!descriptionMatch) continue;
-
-    const task: Task = {
-      id: descriptionMatch[2] || uuidv4(),
-      description: descriptionMatch[1] || "",
-      status: "pending",
-      subtasks: [],
-    };
-
-    // Sub tasks
-    for (const line of lines.slice(1)) {
-      const subtaskMatch = line.match(/\[([ x])\] (.*) \((subtask-[^\)]+)\)/);
-      if (subtaskMatch) {
-        task.subtasks!.push({
-          id: subtaskMatch[3] || uuidv4(),
-          description: subtaskMatch[2] || "",
-          status: subtaskMatch[1] === "x" ? "completed" : "pending",
-        });
-      }
-    }
-
-    task.status =
-      task.subtasks?.length == task.subtasks?.filter(st => st.status === "completed").length ? "completed" : "pending";
-    tasks.push(task);
-  }
-
-  return tasks;
-}
+// function parseTasks(content: string): Task[] {
+//   const tasks: Task[] = [];
+//   const taskSections = content.split(/^Task: /m).slice(1);
+//
+//   for (const section of taskSections) {
+//     const lines = section.split("\n");
+//     if (!lines.length) {
+//       continue;
+//     }
+//
+//     const descriptionMatch = lines[0]?.match(/^(.*) \((task-[^\)]+)\)/);
+//     if (!descriptionMatch) continue;
+//
+//     const task: Task = {
+//       id: descriptionMatch[2] || uuidv4(),
+//       description: descriptionMatch[1] || "",
+//       status: "pending",
+//       subtasks: [],
+//     };
+//
+//     // Sub tasks
+//     for (const line of lines.slice(1)) {
+//       const subtaskMatch = line.match(/\[([ x])\] (.*) \((subtask-[^\)]+)\)/);
+//       if (subtaskMatch) {
+//         task.subtasks!.push({
+//           id: subtaskMatch[3] || uuidv4(),
+//           description: subtaskMatch[2] || "",
+//           status: subtaskMatch[1] === "x" ? "completed" : "pending",
+//         });
+//       }
+//     }
+//
+//     task.status =
+//       task.subtasks?.length == task.subtasks?.filter(st => st.status === "completed").length ? "completed" : "pending";
+//     tasks.push(task);
+//   }
+//
+//   return tasks;
+// }

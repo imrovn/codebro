@@ -1,7 +1,8 @@
 import type { Message } from "messages";
-import type { Context } from "types";
 import type { Tool, ToolCallResponse } from "tools";
 import type OpenAI from "openai";
+import type { ProjectFile } from "types";
+import type { GlobalConfig } from "configs";
 
 /**
  * Agent run history
@@ -16,7 +17,7 @@ export interface AgentRunHistory {
  */
 export interface AgentState {
   history: AgentRunHistory;
-  context: Context;
+  context: AgentContext;
 }
 
 export interface AgentConfig {
@@ -37,4 +38,22 @@ export interface AIResponse {
   isStreaming?: boolean;
 }
 
-export type AgentMode = "PLAN" | "NORMAL";
+export type AgentMode = "PLAN" | "EXECUTE";
+
+/**
+ * Agent context
+ */
+export interface AgentContext extends GlobalConfig {
+  model: string;
+  workingDirectory: string;
+  client: OpenAI;
+  memoryBank?: any;
+  files?: ProjectFile[];
+  memory?: {
+    conversations: Array<{ role: string; content: string; timestamp: string }>;
+    lastUpdated: string;
+  };
+  mcpTools?: Tool[];
+
+  [key: string]: any;
+}

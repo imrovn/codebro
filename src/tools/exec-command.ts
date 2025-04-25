@@ -1,6 +1,6 @@
 import type { Tool } from "tools/tools.types.ts";
 import type OpenAI from "openai";
-import type { Context } from "types";
+import type { AgentContext } from "agents";
 import path from "node:path";
 import * as child_process from "node:child_process";
 import * as util from "node:util";
@@ -41,7 +41,7 @@ export const executeCommandTool: Tool = {
     };
   },
 
-  async run(args, context: Context): Promise<any> {
+  async run(args, context: AgentContext): Promise<any> {
     const oraManager = new OraManager();
     const { command, workingDir = ".", timeout = 10000 } = args;
     const cwd = path.resolve(context.workingDirectory, workingDir);

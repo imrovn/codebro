@@ -1,13 +1,9 @@
 import chalk from "chalk";
 import { version } from "../../package.json";
-import type { Context } from "types";
-import { getRelevantFiles } from "filesystem";
-import { type Config } from "configs";
 import process from "process";
 import type { Task, ToolCallResponse } from "tools";
 import { v4 as uuidv4 } from "uuid";
 import fs from "node:fs";
-import { getClient } from "client";
 
 /**
  * Display help information
@@ -62,22 +58,6 @@ export function createCommandResult(command?: ToolCallResponse) {
 
     createAgentLog("\n--- End of Command Result ---\n");
   }
-}
-
-/**
- * Gather context from the current environment
- */
-export async function gatherContext(config: Config): Promise<Context> {
-  const workingDirectory = process.cwd();
-  const files = await getRelevantFiles(workingDirectory, config.maxFiles, config.excludePaths);
-
-  return {
-    model: config.model,
-    client: getClient(config),
-    workingDirectory,
-    files,
-    useStreaming: config.useStreaming,
-  };
 }
 
 // export function makeLocalDirIfNotExists() {

@@ -1,5 +1,4 @@
 import OpenAI from "openai";
-import type { Context } from "types";
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import { v4 as uuidv4 } from "uuid";
@@ -7,6 +6,7 @@ import type { Task, Tool } from "./tools.types";
 import { createErrorLog, parseMarkdownTasks, writeMarkdownTasks } from "utils";
 import { OraManager } from "utils/ora-manager";
 import chalk from "chalk";
+import type { AgentContext } from "agents";
 
 /**
  * Task Manager Tool: Manages tasks and subtasks, persists state in .codebro/tasks.json
@@ -58,7 +58,7 @@ export const taskManagerTool: Tool = {
     };
   },
 
-  async run(args, context: Context): Promise<any> {
+  async run(args, context: AgentContext): Promise<any> {
     const oraManager = new OraManager();
     const { action, taskId, description, status, subtasks } = args;
     const tasksPath = path.join(context.workingDirectory, ".codebro/tasks.md");

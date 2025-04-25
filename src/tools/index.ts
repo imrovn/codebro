@@ -33,11 +33,11 @@ export function getPrompterTools(): Tool[] {
   // return [readFileTool, writeFileTool, fetchUrlTool, thinkingTool, plannerTool];
 }
 
-export function removeRedundantTools(tools: Tool[]) {
+export function removeRedundantTools(tools: Tool[], excludeTools: string[] = []) {
   const toolNames = new Set();
   return tools.filter((tool: Tool) => {
     const toolName = tool.getDefinition().function.name;
-    return !toolNames.has(toolName) && toolNames.add(toolName);
+    return !excludeTools.includes(toolName) && !toolNames.has(toolName) && toolNames.add(toolName);
   });
 }
 
@@ -45,8 +45,8 @@ export function formatToolForPrompt(tool: Tool): string {
   const toolFunction = tool.getDefinition().function;
   let formattedTool = "";
   const parameters = (toolFunction?.parameters?.properties || {}) as Record<string, any>;
-  const properties = Object.keys(parameters || {});
-  const required = parameters.required || [];
+  const properties: string[] = Object.keys(parameters || {});
+  const required = (toolFunction?.parameters?.required || []) as string[];
   if (properties.length > 0) {
     formattedTool += `Tool: ${toolFunction.name}\nDescription: ${toolFunction.description}\nParameters:\n `;
     for (const property of properties) {

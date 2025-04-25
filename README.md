@@ -108,36 +108,72 @@ See [Configuration](#configuration) for more detail and system environment neede
 
 ## Model Context Protocol (MCP)
 
-Codebro can use tools from MCP server via `mcp-config.ts` file.
+Codebro can use tools from MCP server via configuration file
 
 MCP Resources: https://mcp.so/
 
-NOTE: Will load MCP config file from config folder instead of Typescript file
-
-Example:
-
-```javascript
-export default {
-  playwright: {
-    "command": "npx",
-    "args": ["@playwright/mcp@latest", "--headless"],
-  },
-  sequentialthinking: {
-    "command": "npx",
-    "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
-  },
-  puppeteer: {
-    "command": "npx",
-    "args": ["-y", "@modelcontextprotocol/server-puppeteer"],
-  },
-};
-
-
-```
+See [Configuration](#configuration) for more detail.
 
 <a name="configuration"></a>
 
 ## Configuration
+
+Codebro stores user-specific configuration in:
+
+- macOS: `~/Library/Application Support/com.github.rovndev.codebro`
+- Linux: `~/.config/com.github.rovndev.codebro`
+- Windows: `%APPDATA%\com.github.rovndev.codebro` (e.g.,
+  `C:\Users\<Username>\AppData\Roaming\com.github.rovndev.codebro`)
+
+The configuration directory contains:
+
+- `config.json`: MCP server configurations, ignore files, and excluded tools.
+    - mcpServers: MCP server configuration that compatible
+      with [Claude Desktop Configuration file](https://modelcontextprotocol.io/examples#configuring-with-claude)
+    - mcpServersPath: Path to the custom MCP servers configuration, overwrite config from `mcpServers`.
+    - ignoreFiles: Files to ignore additionally
+    - excludeTools: List tools name that you would like to ignore (default and tools from MCP servers).
+- `.codebrorules`: Additional system prompts appended to the agent's system prompt.
+
+Example `config.json`:
+
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--headless"
+      ]
+    },
+    "sequentialthinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    },
+    "puppeteer": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-puppeteer"
+      ]
+    }
+  },
+  "mcpServersPath": "/path/to/your-mcp-config",
+  "ignoreFiles": [
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/build/**"
+  ],
+  "excludeTools": [
+    "searchCode",
+    "editFile"
+  ]
+}
+```
 
 Edit `.env` to customize:
 

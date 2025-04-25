@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { File } from "types";
+import type { ProjectFile } from "types";
+import { loadGlobalConfig } from "configs";
 
 /**
  * Gets relevant files from a directory with limits on depth and exclusions
@@ -12,17 +13,20 @@ export async function getRelevantFiles(
   excludePaths: string[],
   depth = 0,
   maxDepth = 2
-): Promise<File[]> {
+): Promise<ProjectFile[]> {
   if (depth > maxDepth) return []; // Limit recursion depth
+  // Load ignoreFiles from config
+  const { config } = await loadGlobalConfig();
+  const allExclusions = [...excludePaths, ...(config.ignoreFiles || [])];
 
-  const files: File[] = [];
+  const files: ProjectFile[] = [];
   const entries = fs.readdirSync(dirPath, { withFileTypes: true });
 
   for (const entry of entries) {
     const entryPath = path.join(dirPath, entry.name);
 
     // Skip excluded paths
-    if (excludePaths.some(exclude => entryPath.includes(exclude))) {
+    if (allExclusions.some(exclude => entryPath.includes(exclude))) {
       continue;
     }
 

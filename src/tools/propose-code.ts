@@ -1,10 +1,10 @@
 import type { Tool } from "tools/tools.types.ts";
 import type OpenAI from "openai";
-import type { Context } from "types";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { type Hunk, structuredPatch } from "diff";
 import { formatSuffix, OraManager } from "utils/ora-manager";
+import type { AgentContext } from "agents";
 
 /**
  * Arguments for proposeCodeTool.
@@ -72,7 +72,7 @@ export const proposeCodeTool: Tool = {
     };
   },
 
-  async run(args: ProposeCodeArgs, context: Context): Promise<any> {
+  async run(args: ProposeCodeArgs, context: AgentContext): Promise<any> {
     const { path: filePath, oldString, newString, codeMarkdownLanguage, instruction, targetLintErrorIds } = args;
     const cwd = context.workingDirectory;
     const oraManager = new OraManager();

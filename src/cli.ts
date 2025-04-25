@@ -5,10 +5,23 @@ import { config } from "dotenv";
 import { version } from "../package.json";
 import * as process from "node:process";
 import { main } from "chat.ts";
+import { loadGlobalConfig, printConfigMessage } from "configs";
 
 config();
 
 export const cliApp = new Command();
+const viewCommand = new Command()
+  .command("config")
+  .description("Manage Codebro configuration")
+  .option("--view", "View current configuration")
+  .action(async options => {
+    // TODO: handle more options e.g. update MCP config path, handle view by default
+
+    const globalConfig = await loadGlobalConfig();
+    printConfigMessage(globalConfig);
+
+    process.exit(0);
+  });
 
 cliApp
   .name("codebro")
@@ -31,7 +44,8 @@ cliApp
     new Option("-p, --provider <provider>", "LLM Provider")
       .default("azure", "Azure OpenAI")
       .choices(["azure", "openai", "openrouter", "gemini", "localLM"])
-  );
+  )
+  .addCommand(viewCommand);
 
 cliApp.parse(process.argv);
 export const options: OptionValues = cliApp.opts();

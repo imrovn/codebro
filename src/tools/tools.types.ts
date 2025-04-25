@@ -1,5 +1,5 @@
-import type { Context } from "types";
 import OpenAI from "openai";
+import type { AgentContext } from "agents";
 
 /**
  * Tool definition
@@ -7,7 +7,9 @@ import OpenAI from "openai";
 export interface Tool {
   getDefinition(): OpenAI.Chat.ChatCompletionTool;
 
-  run(args: Record<string, any>, context: Context): Promise<any>;
+  run(args: Record<string, any>, context: AgentContext): Promise<any>;
+
+  isMCPTool?: boolean;
 }
 
 /**
@@ -32,8 +34,4 @@ export interface Task {
   description: string;
   status: "pending" | "in_progress" | "completed" | "failed";
   subtasks?: Array<{ id: string; description: string; status: "pending" | "completed" }>;
-}
-
-export interface ProjectState {
-  tasks: Task[];
 }

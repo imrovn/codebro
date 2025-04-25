@@ -1,10 +1,10 @@
 import type { Task, Tool } from "tools/tools.types.ts";
 import type OpenAI from "openai";
-import type { Context } from "types";
 import { callLlm } from "utils/llm.ts";
 import { OraManager } from "utils/ora-manager.ts";
 import { v4 as uuidv4 } from "uuid";
 import { taskManagerTool } from "tools/task-manager.ts";
+import type { AgentContext } from "agents";
 
 /**
  * Fetch content from a URL
@@ -38,7 +38,7 @@ export const plannerTool: Tool = {
     };
   },
 
-  async run(args, context: Context): Promise<any> {
+  async run(args, context: AgentContext): Promise<any> {
     const oraManager = new OraManager();
     const { prompt, context: conversationContext } = args;
     oraManager.startTool("Planning architecture...", `\t ${prompt}`);

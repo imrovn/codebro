@@ -1,11 +1,11 @@
 import type { Tool } from "tools/tools.types.ts";
 import type OpenAI from "openai";
-import type { Context } from "types";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { type Hunk, structuredPatch } from "diff";
 import { formatSuffix, OraManager } from "utils/ora-manager";
+import type { AgentContext } from "agents";
 
 /**
  * Edit file in the project
@@ -56,7 +56,7 @@ Multiple edits to the same file should be batched in a single message with multi
     };
   },
 
-  async run(args, context: Context): Promise<any> {
+  async run(args, context: AgentContext): Promise<any> {
     const { path: filePath, oldString, newString } = args;
     const cwd = context.workingDirectory;
     const oraManager = new OraManager();

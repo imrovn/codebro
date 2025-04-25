@@ -1,11 +1,11 @@
 import type { Tool } from "tools/tools.types.ts";
 import type OpenAI from "openai";
-import type { Context } from "types";
 import { OraManager } from "utils/ora-manager";
 import { isAbsolute } from "path";
 import { spawnSync } from "child_process";
 import { rgPath } from "@vscode/ripgrep";
 import chalk from "chalk";
+import type { AgentContext } from "agents";
 // Promisify exec
 const MAX_RESULTS = 100;
 /**
@@ -48,7 +48,7 @@ export const searchCodeTool: Tool = {
     };
   },
 
-  async run(args, context: Context): Promise<any> {
+  async run(args, context: AgentContext): Promise<any> {
     const { query, path, filePattern = "" } = args;
     const oraManager = new OraManager();
     oraManager.startTool(

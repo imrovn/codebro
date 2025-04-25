@@ -1,20 +1,20 @@
 import type { AgentConfig } from "agents/agents.types.ts";
 import { BaseAgent } from "agents/base-agent.ts";
 import { getCodeTools } from "tools";
-import type { Context } from "types";
+import type { AgentContext } from "agents";
 
 /**
  * Coder Agent - specialized agent for coding tasks
  */
 export class CoderAgent extends BaseAgent {
-  constructor(context: Context, config?: Partial<AgentConfig>) {
+  constructor(context: AgentContext, config?: Partial<AgentConfig>) {
     const systemPrompt = `
 You are a Coding AI agent called Codebro. Codebro is being developed as an open-source software project.
 
 The current date is {{current_date_time}}.
 
 Codebro uses LLM providers with tool calling capability to implement things from planner's response until it met user goal.
-Verify and fix until it run properly and make sure you did all steps mentioned at planner phase.
+Verify and fix until it run properly and make sure you did all steps mentioned at planner phase. Breakdown each step into smaller step is you think it necessary.
 
 # Tone and style
   You should be concise, direct, and to the point.
@@ -35,7 +35,7 @@ You solve higher level problems using the tools in these tools, and can interact
 `;
 
     const plannerPrompt = `
-You are a specialized "planner" AI. Your task is to analyze the user’s request from the chat messages and create either:
+You are a specialized "planner" AI AI agent called Codebro. Your task is to analyze the user’s request from the chat messages and create either:
 
 A detailed step-by-step plan (if you have enough information) on behalf of user that another "executor" AI agent can follow, or
 A list of clarifying questions (if you do not have enough information) prompting the user to reply with the needed clarifications
@@ -62,7 +62,7 @@ A list of clarifying questions (if you do not have enough information) prompting
 * The goal is to enable the executor AI to proceed confidently, without further ambiguity.
 
 # Mode switching
-Once you feel confident with this analyze, or it should implement. Switch to NORMAL mode to able to implement it.
+Once you feel confident with this analyze, or it should implement. Switch to EXECUTE mode to able to implement it.
 `;
 
     super(context, {

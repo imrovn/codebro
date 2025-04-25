@@ -1,9 +1,9 @@
 import type { Tool } from "tools/tools.types.ts";
 import type OpenAI from "openai";
-import type { Context } from "types";
 import path from "node:path";
 import fs from "node:fs";
 import { OraManager } from "utils/ora-manager";
+import type { AgentContext } from "agents";
 
 /**
  * Read file from the project
@@ -42,7 +42,7 @@ export const readFileTool: Tool = {
     };
   },
 
-  async run(args, context: Context): Promise<any> {
+  async run(args, context: AgentContext): Promise<any> {
     const { path: filePath, startLine, endLine } = args;
     const oraManager = new OraManager();
     oraManager.startTool(`Reading file '${filePath}' from project...`);

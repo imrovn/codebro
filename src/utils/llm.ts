@@ -1,6 +1,6 @@
-import type { Context } from "types";
+import type { AgentContext } from "agents";
 
-export async function callLlm(context: Context, systemPrompt: string, prompt: string): Promise<string> {
+export async function callLlm(context: AgentContext, systemPrompt: string, prompt: string): Promise<string> {
   const { model, client } = context;
 
   const response = await client.chat.completions.create({

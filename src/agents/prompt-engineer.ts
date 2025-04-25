@@ -1,13 +1,13 @@
 import type { AgentConfig } from "agents/agents.types.ts";
 import { BaseAgent } from "agents/base-agent.ts";
 import { getPrompterTools } from "tools";
-import type { Context } from "types";
+import type { AgentContext } from "agents";
 
 /**
  * Coder Agent - specialized agent for coding tasks
  */
 export class PromptEngineerAgent extends BaseAgent {
-  constructor(context: Context, config?: Partial<AgentConfig>) {
+  constructor(context: AgentContext, config?: Partial<AgentConfig>) {
     const systemPrompt = `
 You are an expert prompt engineer tasked with transforming short, vague, or underspecified user prompts into practical, effective, and category-optimized prompts that maximize the quality of the response from a large language model. Follow this structured process:
  1. **Understand the Prompt**:
@@ -65,7 +65,7 @@ Only generate optimized version of prompt, don't generate the result of that pro
       ...(config || {}),
       name: "Prompt bro",
       systemPrompt,
-      mode: "NORMAL",
+      mode: "EXECUTE",
       tools: [
         ...getPrompterTools(),
         ...(context.mcpTools || []).filter(tool => tool.getDefinition().function.name.startsWith("puppeteer")),

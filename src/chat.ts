@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { createConfig } from "configs";
-import { gatherContext } from "utils";
 import * as readline from "node:readline/promises";
 import { cliApp } from "./cli.ts";
 import process from "process";
@@ -9,8 +8,7 @@ import { OraManager } from "utils/ora-manager.ts";
 import chalk from "chalk";
 import { getAgent } from "agents";
 import figlet from "figlet";
-import mcpConfig from "../mcp-config.ts";
-import { createToolsFromMcpConfig } from "mcp/mcp.ts";
+import { gatherContext } from "agents/context.ts";
 
 const controller = new AbortController();
 const signal = controller.signal;
@@ -24,11 +22,9 @@ const COMMANDS = {
  * Main entry point for the CLI
  */
 export async function main() {
-  // makeLocalDirIfNotExists();
   const { mode, provider } = cliApp.opts();
   const config = createConfig(provider);
   const context = await gatherContext(config);
-  context.mcpTools = await createToolsFromMcpConfig({ config: mcpConfig });
   const agent = getAgent(context, mode);
   printWelcomeMessage(mode, provider, config.model);
   await chatLoop(agent).catch(console.error);

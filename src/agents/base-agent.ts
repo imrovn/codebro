@@ -1,6 +1,12 @@
-import type { AgentConfig, AgentMode, AgentRunHistory, AgentState, AIResponse } from "agents/agents.types.ts";
+import type {
+  AgentConfig,
+  AgentContext,
+  AgentMode,
+  AgentRunHistory,
+  AgentState,
+  AIResponse,
+} from "agents/agents.types.ts";
 import { formatToolsForPrompt, removeRedundantTools, type Task, type Tool } from "tools";
-import type { Context } from "types";
 import { createAssistantMessage, createUserMessage, type Message } from "messages";
 import type OpenAI from "openai";
 import process from "process";
@@ -8,7 +14,7 @@ import path from "path";
 import { promises as fs } from "fs";
 import { parseMarkdownTasks } from "utils";
 import { taskManagerTool } from "tools/task-manager.ts";
-import type { OraManager } from "utils/ora-manager.ts";
+import { OraManager } from "utils/ora-manager.ts";
 
 const defaultHistory: AgentRunHistory = {
   messages: [],
@@ -25,7 +31,7 @@ export abstract class BaseAgent {
   /**
    * Create a new agent
    */
-  protected constructor(context: Context, config: AgentConfig) {
+  protected constructor(context: AgentContext, config: AgentConfig) {
     this.config = {
       ...config,
       name: config.name || "codebro",
@@ -39,23 +45,11 @@ export abstract class BaseAgent {
       context,
     };
     this.client = context.client;
-    this.tools = removeRedundantTools([...(config.tools || []), taskManagerTool]);
+    this.tools = removeRedundantTools([...(config.tools || []), taskManagerTool], context.config.excludeTools);
 
     if (config.mode) {
       this.mode = config.mode;
     }
-    // this.initializeState().catch(console.error);
-  }
-
-  /**
-   * Initialize state by loading custom rules and tasks
-   */
-  protected async initializeState(): Promise<void> {
-    const codebroDir = path.join(this.state.context.workingDirectory, ".codebro");
-    await fs.mkdir(codebroDir, { recursive: true });
-
-    const taskPath = path.join(codebroDir, "tasks.md");
-    await fs.writeFile(taskPath, "# Codebro tasks\n\n", "utf8");
   }
 
   getTools(): OpenAI.Chat.ChatCompletionTool[] {
@@ -127,24 +121,15 @@ export abstract class BaseAgent {
       content: finalResponse,
     });
 
-    // const { incompleteTasks, allCompleted } = checkTaskCompletion(this.state.context.tasks || []);
-    // if (!allCompleted) {
-    //   this.pushMessage({
-    //     role: "assistant",
-    //     content: "Okay, now we'll do the next task - " + incompleteTasks[0],
-    //   });
-    //   oraManager.append("\n " + "Okay, now we'll do the next task - " + incompleteTasks[0]);
-    // }
-
     // Limit conversation history to prevent memory issues
-    if (this.getMessages().length > 50) {
+    if (this.getMessages().length > 70) {
       // TODO: Summary the last messages, slice for now
       this.state.history.messages = [
         {
           role: "system",
           content: await this.getSystemPrompt(),
         },
-        ...this.getMessages().slice(-49),
+        ...this.getMessages().slice(-69),
       ];
     }
 
@@ -196,6 +181,7 @@ export abstract class BaseAgent {
           oraManager.append(deltaContent);
         } else if (chunk.choices[0]?.finish_reason == "stop") {
           // stop signal
+          oraManager.succeed(content);
         }
 
         // Handle tool calls
@@ -238,6 +224,7 @@ export abstract class BaseAgent {
   }
 
   private async executeToolCall(toolCall: OpenAI.Chat.ChatCompletionMessageToolCall): Promise<any> {
+    const ora = new OraManager();
     const toolName = toolCall.function.name;
     const tool = this.findTool(toolName);
     if (!tool) {
@@ -245,7 +232,16 @@ export abstract class BaseAgent {
     }
 
     const args = JSON.parse(toolCall.function.arguments);
+    const formattedArgs = Object.keys(args || {})
+      .map(key => `${key}=${args[key]}`)
+      .join(", ");
+    const suffix = formattedArgs ? `[${formattedArgs}]` : "";
+    tool.isMCPTool && ora.startTool(`Tool ${toolName} executing ...`, suffix);
+
     const result = await tool.run(args, this.state.context);
+
+    tool.isMCPTool && ora.succeed(`Tool ${toolName} executed`);
+
     if (toolName === "agentModeSwitch" && args.mode) {
       this.mode = args.mode;
     }
@@ -278,19 +274,22 @@ export abstract class BaseAgent {
    * Get the system prompt
    */
   protected async getSystemPrompt(): Promise<string> {
-    let systemPrompt: string = (this.mode == "NORMAL" ? this.config.systemPrompt : this.config.plannerPrompt) || "";
-    systemPrompt.replace("@@TOOLS_DECLARE@@", this.tools.length > 0 ? formatToolsForPrompt(this.tools) : "");
+    let systemPrompt: string = (this.mode == "EXECUTE" ? this.config.systemPrompt : this.config.plannerPrompt) || "";
+    systemPrompt = systemPrompt.replace(
+      "@@TOOLS_DECLARE@@",
+      this.tools.length > 0 ? formatToolsForPrompt(this.tools) : ""
+    );
     systemPrompt += `
     \n# Tool usage policy
     - If you intend to call multiple tools and there are no dependencies between the calls, make all of the independent calls in the same function_calls block.
     IMPORTANT: Refuse to write/explain or execute code/command that may be used maliciously; even if the user claims it is for educational purposes.
 `;
-    systemPrompt += "You can switch between either NORMAL or PLAN mode by using agentModeSwitch \n";
+    systemPrompt += "You can switch between either EXECUTE or PLAN mode by using agentModeSwitch \n";
 
-    // const additionalPrompt = await this.loadAdditionalPrompt();
-    // if (additionalPrompt) {
-    //   systemPrompt += `\n# Additional rules from user\n ${additionalPrompt}\n`;
-    // }
+    const additionalPrompt = this.state.context.additionalPrompts;
+    if (additionalPrompt) {
+      systemPrompt += `\n# Additional rules from user:\n ${additionalPrompt}\n`;
+    }
 
     // Include active tasks
     const tasks = this.state.context.tasks as Task[] | undefined;
@@ -302,19 +301,6 @@ export abstract class BaseAgent {
     }
 
     return systemPrompt;
-  }
-
-  async loadAdditionalPrompt(): Promise<string> {
-    const rulesFilePath = path.join(this.state.context.workingDirectory, ".codebro/.codebrorules");
-    try {
-      return await fs.readFile(rulesFilePath, "utf8");
-    } catch (error: any) {
-      if (error.code === "ENOENT") {
-        await fs.writeFile(rulesFilePath, "# Custom rules for Codebro\n", "utf8");
-        return "";
-      }
-      throw error;
-    }
   }
 
   /**

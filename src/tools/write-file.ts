@@ -1,9 +1,9 @@
 import type { Tool } from "tools/tools.types.ts";
 import type OpenAI from "openai";
-import type { Context } from "types";
 import path from "node:path";
 import fs from "node:fs";
 import { OraManager } from "utils/ora-manager";
+import type { AgentContext } from "agents";
 
 /**
  * Write file to the project
@@ -40,7 +40,7 @@ Before using this tool, use the ReadFile tool to understand the file's contents 
     };
   },
 
-  async run(args, context: Context): Promise<any> {
+  async run(args, context: AgentContext): Promise<any> {
     const { path: filePath, content, createDirs = true } = args;
     const oraManager = new OraManager();
     oraManager.startTool(`Writing file: ${filePath}`);

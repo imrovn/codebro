@@ -1,7 +1,7 @@
 import type { Tool } from "tools/tools.types.ts";
 import type OpenAI from "openai";
-import type { Context } from "types";
 import { OraManager } from "utils/ora-manager.ts";
+import type { AgentContext } from "agents";
 
 /**
  * Agent mode switching tool
@@ -12,13 +12,13 @@ export const agentModeSwitchTool: Tool = {
       type: "function" as const,
       function: {
         name: "agentModeSwitch",
-        description: `Your tool to switch agent mode between NORMAL and PLAN.`,
+        description: `Your tool to switch agent mode between EXECUTE and PLAN. `,
         parameters: {
           type: "object",
           properties: {
             mode: {
               type: "string",
-              description: "The target mode, option could be either NORMAL or PLAN",
+              description: "The target mode, option could be either EXECUTE or PLAN",
             },
           },
           required: ["mode"],
@@ -28,7 +28,7 @@ export const agentModeSwitchTool: Tool = {
     };
   },
 
-  async run(args, context: Context): Promise<any> {
+  async run(args, _: AgentContext): Promise<any> {
     const oraManager = new OraManager();
     const { mode } = args;
     oraManager.startTool("Agent mode switching...");

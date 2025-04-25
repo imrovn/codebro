@@ -1,6 +1,6 @@
 import type { Tool } from "tools/tools.types.ts";
 import type OpenAI from "openai";
-import type { Context } from "types";
+import type { AgentContext } from "agents";
 import axios from "axios";
 import { OraManager } from "utils/ora-manager";
 
@@ -41,7 +41,7 @@ export const fetchUrlTool: Tool = {
     };
   },
 
-  async run(args, context: Context): Promise<any> {
+  async run(args, context: AgentContext): Promise<any> {
     const oraManager = new OraManager();
     const { url, method = "GET", headers = {}, data } = args;
     oraManager.startTool("Fetching URL...", `\t ${url}`);

@@ -1,9 +1,9 @@
 import type { Tool } from "tools/tools.types.ts";
 import type OpenAI from "openai";
-import type { Context } from "types";
 import path from "node:path";
 import fs from "node:fs";
 import { OraManager } from "utils/ora-manager";
+import type { AgentContext } from "agents";
 
 /**
  * Get project structure
@@ -39,7 +39,7 @@ export const projectStructureTool: Tool = {
     };
   },
 
-  async run(args, context: Context): Promise<any> {
+  async run(args, context: AgentContext): Promise<any> {
     const { directory = "", depth = 3, exclude = "node_modules,.git,dist,build" } = args;
     const oraManager = new OraManager();
     oraManager.startTool(

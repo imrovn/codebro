@@ -5,6 +5,7 @@ import * as path from "path";
 import type { McpConfig } from "mcp/mcp.types.ts";
 import { version } from "../../package.json";
 import type { Tool } from "tools";
+import type { AgentContext } from "agents";
 
 /**
  * Options for creating tools from MCP config
@@ -156,7 +157,7 @@ export async function createToolsFromMcpConfig({
               };
             },
 
-            run: async ({ parameters }) => {
+            run: async (parameters, _: AgentContext) => {
               try {
                 const result = await client.callTool({
                   name: tool.name,
@@ -173,6 +174,8 @@ export async function createToolsFromMcpConfig({
                 throw error;
               }
             },
+
+            isMCPTool: true,
           });
 
           toolNames.push(toolId);

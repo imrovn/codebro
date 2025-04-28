@@ -1,7 +1,7 @@
 import type { Config } from "configs";
 import OpenAI, { AzureOpenAI } from "openai";
 
-export type ClientProvider = "azure" | "openai" | "openrouter" | "localLLM" | "gemini";
+export type ClientProvider = "azure" | "openai" | "openrouter" | "localLM" | "gemini";
 
 export function getClient(config: Config): OpenAI {
   const { apiKey, baseURL, provider } = config;
@@ -9,7 +9,7 @@ export function getClient(config: Config): OpenAI {
   switch (provider) {
     case "openai":
       return new OpenAI({ apiKey });
-    case "localLLM":
+    case "localLM":
       return new OpenAI({ baseURL, apiKey: "Local LLM" });
     case "openrouter":
       return getOpenRouterClient(config);

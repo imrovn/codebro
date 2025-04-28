@@ -22,23 +22,16 @@ export function getClientConfig(provider: ClientProvider): { apiKey: string; bas
         apiKey,
       };
     }
-    case "localLLM": {
-      const apiKey = process.env.OPENAI_API_KEY || "";
-      if (!apiKey) {
-        throw new Error(
-          "Error: API key is not set. Please set OPENAI_API_KEY in your .env file or system environment."
-        );
-      }
-
+    case "localLM": {
       const baseURL = process.env.OPENAI_API_BASE_URL || "";
       if (!baseURL) {
         throw new Error(
-          "Error: API key is not set. Please set AZURE_OPENAI_ENDPOINT in your .env file or system environment."
+          "Error: API key is not set. Please set OPENAI_API_BASE_URL in your .env file or system environment."
         );
       }
 
       return {
-        apiKey,
+        apiKey: "",
         baseURL,
       };
     }

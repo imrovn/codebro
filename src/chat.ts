@@ -53,7 +53,7 @@ async function chatLoop(agent: BaseAgent, useStreaming: boolean = true) {
 
     // Handle SIGINT (Ctrl+C)
     process.on("SIGINT", () => {
-      console.log("exitttt");
+      console.log("Bye bye \n");
       oraManager.succeed("Bye bye !");
       process.exit(1);
     });

@@ -16,7 +16,11 @@ export const plannerTool: Tool = {
         name: "planner",
         description: `Your go-to tool for any technical or coding task. 
         Analyzes requirements and breaks them down into clear, actionable implementation steps. 
-        Use this whenever you need help planning how to implement a feature, solve a technical problem, or structure your code.`,
+        Use this whenever you need help planning how to implement a feature, solve a technical problem, or structure your code.
+        Best practice:
+        - Collect all necessary files and context before going to plan. Remember to include the project context and major decisions from user. Keep project context update.
+        - Using tools to explore current code style conventions (e.g., languages, formatting, naming conventions) and tech stack (e.g., tools, frameworks, languages being used) to align with current environment
+        `,
         parameters: {
           type: "object",
           properties: {

@@ -10,6 +10,7 @@ import { thinkingTool } from "tools/think.ts";
 import { agentModeSwitchTool } from "tools/agent-mode-switch.ts";
 import { plannerTool } from "tools/planner.ts";
 import { webSearchTool } from "tools/web-search-tool.ts";
+import { exploreProjectEnvironmentTool } from "tools/explore-environment.ts";
 
 export * from "./tools.types";
 
@@ -26,6 +27,7 @@ export function getCodeTools(): Tool[] {
     agentModeSwitchTool,
     plannerTool,
     webSearchTool,
+    exploreProjectEnvironmentTool,
   ];
 }
 

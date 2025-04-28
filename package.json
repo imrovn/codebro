@@ -11,7 +11,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rovndev/codebro.git"
+    "url": "git+https://github.com/imrovn/codebro.git"
   },
   "scripts": {
     "dev": "bun run --watch src/cli.ts",

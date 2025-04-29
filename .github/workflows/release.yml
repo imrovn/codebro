@@ -44,6 +44,8 @@ jobs:
       # Install dependencies
       - name: Install dependencies
         run: bun install
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Build the project with Vite
       - name: Build with Vite
@@ -60,7 +62,7 @@ jobs:
       - name: Upload executable
         uses: actions/upload-artifact@v4
         with:
-          name: codebro-${{ runner.os == 'windows-latest' && 'windows' || runner.os == 'macos-latest' && 'darwin' || 'linux' }}-${{ matrix.arch }}
+          name: codebro-${{ runner.os == 'windows-latest' && 'windows' || runner.os == 'macos-latest' && 'darwin' || 'linux' }}-${{ matrix.arch }}-${{ github.run_id }}
           path: dist/codebro-${{ runner.os == 'windows-latest' && 'windows' || runner.os == 'macos-latest' && 'darwin' || 'linux' }}-${{ matrix.arch }}${{ runner.os == 'windows-latest' && '.exe' || '' }}
           if-no-files-found: error
 
@@ -90,6 +92,8 @@ jobs:
       # Install dependencies
       - name: Install dependencies
         run: bun install
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Download all artifacts (executables)
       - name: Download artifacts

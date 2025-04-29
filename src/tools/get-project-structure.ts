@@ -1,9 +1,11 @@
-import type { Tool } from "tools/tools.types.ts";
 import type OpenAI from "openai";
-import path from "node:path";
+
+import type { AgentContext } from "@agents";
+import type { Tool } from "@tools/tools.types.ts";
+import { OraManager } from "@utils/ora-manager";
+
 import fs from "node:fs";
-import { OraManager } from "utils/ora-manager";
-import type { AgentContext } from "agents";
+import path from "node:path";
 
 /**
  * Get project structure

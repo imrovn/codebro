@@ -1,11 +1,13 @@
-#!/usr/bin/env node
-
+#! /usr/bin/node
 import { Command, Option, type OptionValues } from "commander";
 import { config } from "dotenv";
-import { version } from "../package.json";
+
+import { main } from "@chat";
+import { loadGlobalConfig, printConfigMessage } from "@configs";
+
 import * as process from "node:process";
-import { main } from "chat.ts";
-import { loadGlobalConfig, printConfigMessage } from "configs";
+
+import { version } from "../package.json";
 
 config();
 

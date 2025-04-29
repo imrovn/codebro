@@ -1,5 +1,5 @@
-import type { ClientProvider } from "client";
-import type { McpConfig } from "mcp";
+import type { ClientProvider } from "@client";
+import type { McpConfig } from "@mcp";
 
 export interface Config {
   apiKey: string;

@@ -1,9 +1,12 @@
 import chalk from "chalk";
-import { version } from "../../package.json";
 import process from "process";
-import type { Task, ToolCallResponse } from "tools";
 import { v4 as uuidv4 } from "uuid";
+
+import type { Task, ToolCallResponse } from "@tools";
+
 import fs from "node:fs";
+
+import { version } from "../../package.json";
 
 /**
  * Display help information

@@ -1,8 +1,10 @@
+import type { McpConfig } from "@mcp/mcp.types.ts";
+
+import { existsSync } from "node:fs";
+import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import * as fs from "node:fs/promises";
-import { existsSync } from "node:fs";
-import type { McpConfig } from "mcp/mcp.types.ts";
+
 import type { CodebroConfig, GlobalConfig } from "./configs.types";
 
 export const CONFIG_FOLDER_NAME = "com.github.rovndev.codebro";

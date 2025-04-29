@@ -1,8 +1,9 @@
-import type { Message } from "messages";
-import type { Tool, ToolCallResponse } from "tools";
 import type OpenAI from "openai";
-import type { ProjectFile } from "types";
-import type { GlobalConfig } from "configs";
+
+import type { GlobalConfig } from "@configs";
+import type { Message } from "@messages";
+import type { Tool, ToolCallResponse } from "@tools";
+import type { ProjectFile } from "@types";
 
 /**
  * Agent run history

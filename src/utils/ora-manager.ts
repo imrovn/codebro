@@ -1,5 +1,5 @@
-import ora, { type Ora } from "ora";
 import chalk from "chalk";
+import ora, { type Ora } from "ora";
 
 export class OraManager {
   private spinner: Ora | null = null;

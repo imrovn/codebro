@@ -1,9 +1,10 @@
-import type { AgentContext } from "agents";
-import { OraManager } from "utils/ora-manager.ts";
 import chalk from "chalk";
-import OpenAI from "openai";
-import type { Tool } from "tools/tools.types.ts";
 import { search } from "duck-duck-scrape";
+import OpenAI from "openai";
+
+import type { AgentContext } from "@agents";
+import type { Tool } from "@tools/tools.types.ts";
+import { OraManager } from "@utils/ora-manager.ts";
 
 export const webSearchTool: Tool = {
   getDefinition(): OpenAI.Chat.ChatCompletionTool {

@@ -1,7 +1,8 @@
+import { loadGlobalConfig } from "@configs";
+import type { ProjectFile } from "@types";
+
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { ProjectFile } from "types";
-import { loadGlobalConfig } from "configs";
 
 /**
  * Gets relevant files from a directory with limits on depth and exclusions

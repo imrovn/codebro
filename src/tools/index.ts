@@ -1,16 +1,16 @@
-import type { Tool } from "tools/tools.types.ts";
-import { searchCodeTool } from "tools/search-code.ts";
-import { projectStructureTool } from "tools/get-project-structure.ts";
-import { readFileTool } from "tools/read-file.ts";
-import { writeFileTool } from "tools/write-file.ts";
-import { editFileTool } from "tools/edit-file.ts";
-import { executeCommandTool } from "tools/exec-command.ts";
-import { fetchUrlTool } from "tools/fetch-url.ts";
-import { thinkingTool } from "tools/think.ts";
-import { agentModeSwitchTool } from "tools/agent-mode-switch.ts";
-import { plannerTool } from "tools/planner.ts";
-import { webSearchTool } from "tools/web-search-tool.ts";
-import { exploreProjectEnvironmentTool } from "tools/explore-environment.ts";
+import { agentModeSwitchTool } from "@tools/agent-mode-switch";
+import { editFileTool } from "@tools/edit-file";
+import { executeCommandTool } from "@tools/exec-command";
+import { exploreProjectEnvironmentTool } from "@tools/explore-environment";
+import { fetchUrlTool } from "@tools/fetch-url";
+import { projectStructureTool } from "@tools/get-project-structure";
+import { plannerTool } from "@tools/planner";
+import { readFileTool } from "@tools/read-file";
+import { searchCodeTool } from "@tools/search-code";
+import { thinkingTool } from "@tools/think";
+import type { Tool } from "@tools/tools.types";
+import { webSearchTool } from "@tools/web-search-tool";
+import { writeFileTool } from "@tools/write-file";
 
 export * from "./tools.types";
 

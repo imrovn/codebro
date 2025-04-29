@@ -1,11 +1,16 @@
-import type { Tool } from "tools/tools.types.ts";
+// Import getPatch for diff
+import chalk from "chalk";
 import type OpenAI from "openai";
-import path from "node:path";
+
+import type { AgentContext } from "@agents";
+import { getPatch } from "@tools/propose-code";
+import type { Tool } from "@tools/tools.types";
+import { OraManager } from "@utils/ora-manager";
+
 import fs from "node:fs";
-import { OraManager } from "utils/ora-manager";
-import type { AgentContext } from "agents";
-import { getPatch } from "tools/propose-code.ts"; // Import getPatch for diff
-import chalk from "chalk"; // For formatting diff output
+import path from "node:path";
+
+// For formatting diff output
 
 /**
  * Write file to the project and display the diff of changes made.
@@ -54,7 +59,7 @@ Usage Instructions:
               default: true,
             },
           },
-          required: ["path", "content"],
+          required: ["node:path", "content"],
           additionalProperties: false,
         },
       },

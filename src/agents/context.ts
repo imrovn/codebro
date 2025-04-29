@@ -1,7 +1,7 @@
-import { type Config, loadGlobalConfig } from "configs";
-import type { AgentContext } from "agents/agents.types.ts";
-import { createToolsFromMcpConfig } from "mcp";
-import { getClient } from "client";
+import type { AgentContext } from "@agents/agents.types";
+import { getClient } from "@client";
+import { type Config, loadGlobalConfig } from "@configs";
+import { createToolsFromMcpConfig } from "@mcp";
 
 /**
  * Gather context from the current environment

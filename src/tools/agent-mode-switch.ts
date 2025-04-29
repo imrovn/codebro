@@ -1,7 +1,8 @@
-import type { Tool } from "tools/tools.types.ts";
 import type OpenAI from "openai";
-import { OraManager } from "utils/ora-manager";
-import type { AgentContext } from "agents/agents.types.ts";
+
+import type { AgentContext } from "@agents/agents.types";
+import type { Tool } from "@tools/tools.types";
+import { OraManager } from "@utils/ora-manager";
 
 /**
  * Switch agent mode with a defined plan and execute it.

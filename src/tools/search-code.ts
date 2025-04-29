@@ -1,11 +1,14 @@
-import type { Tool } from "tools/tools.types.ts";
-import type OpenAI from "openai";
-import { OraManager } from "utils/ora-manager";
-import { isAbsolute } from "path";
-import { spawnSync } from "child_process";
-import { rgPath } from "@vscode/ripgrep";
 import chalk from "chalk";
-import type { AgentContext } from "agents";
+import type OpenAI from "openai";
+
+import type { AgentContext } from "@agents";
+import type { Tool } from "@tools/tools.types";
+import { OraManager } from "@utils/ora-manager";
+import { rgPath } from "@vscode/ripgrep";
+
+import { spawnSync } from "node:child_process";
+import { isAbsolute } from "node:path";
+
 // Promisify exec
 const MAX_RESULTS = 100;
 /**
@@ -24,7 +27,7 @@ Usage Instructions:
 - Query Tips:
   - Craft precise queries to target specific elements (e.g., "useState" for React hooks, "express.Router" for Express routes, or "TODO" for development notes).
   - Use regex patterns for advanced searches (e.g., "\\bclass\\b.*Controller" for controller classes).
-  - Include file extensions or patterns to narrow scope (e.g., "*.ts" for TypeScript files, "package.json" for dependencies).
+  - Include file extensions or patterns to narrow scope (e.g., "*" for TypeScript files, "package.json" for dependencies).
   - Search for comments or documentation (e.g., "//\\s*TODO" or "@desc" to understand intent or pending tasks).
 - Context Analysis:
   - Before searching, use \`getProjectStructure\` to understand the codebase layout and identify relevant directories or files (e.g., \`src/api\` for backend logic).
@@ -42,7 +45,7 @@ Usage Instructions:
   - Combine with \`webSearch\` or \`fetchUrl\` for external context if internal code lacks clarity (e.g., search for a library’s usage then fetch its documentation).
   - Use results to align with project conventions (e.g., match existing code style or naming conventions before proposing edits).
 - Example:
-  - Query: "Search for 'express.Router' in *.ts" → Returns Express route definitions to understand API structure.
+  - Query: "Search for 'express.Router' in *" → Returns Express route definitions to understand API structure.
   - Query: "Search for '//\\s*TODO' in src/*" → Identifies pending tasks or developer notes to infer project goals.
   - Follow-up: Use \`readFile\` on matched files to analyze full context, then \`proposeCode\` to address TODOs.
 `,

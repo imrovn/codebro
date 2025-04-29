@@ -1,15 +1,16 @@
-import type { Tool } from "tools/tools.types.ts";
-import type OpenAI from "openai";
-import type { AgentContext } from "agents";
-import path from "node:path";
-import * as child_process from "node:child_process";
-import * as util from "node:util";
-import { OraManager } from "utils/ora-manager";
 import chalk from "chalk";
+import type OpenAI from "openai";
+
+import type { AgentContext } from "@agents";
+import type { Tool } from "@tools/tools.types";
+import { OraManager } from "@utils/ora-manager";
+
+import * as child_process from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
+import path from "node:path";
+import * as util from "node:util";
 
-// Promisify exec
 const execAsync = util.promisify(child_process.exec);
 
 interface ProjectEnvironment {

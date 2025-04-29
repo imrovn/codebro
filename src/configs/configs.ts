@@ -1,10 +1,13 @@
-import * as dotenv from "dotenv";
-import type { Config, GlobalConfig } from "./configs.types";
-import process from "node:process";
-import type { ClientProvider } from "client";
-import { getClientConfig } from "configs/client.ts";
 import chalk from "chalk";
+import * as dotenv from "dotenv";
 import figlet from "figlet";
+
+import type { ClientProvider } from "@client";
+import { getClientConfig } from "@configs/client";
+
+import process from "node:process";
+
+import type { Config, GlobalConfig } from "./configs.types";
 
 // Load environment variables
 dotenv.config();

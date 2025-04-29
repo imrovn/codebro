@@ -10,9 +10,6 @@
     "jsx": "react-jsx",
     "allowJs": true,
     "moduleResolution": "node",
-    "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
-    "noEmit": true,
     "strict": true,
     "skipLibCheck": true,
     "noFallthroughCasesInSwitch": true,
@@ -22,15 +19,24 @@
     "noPropertyAccessFromIndexSignature": false,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "baseUrl": "./src",
     "typeRoots": [
       "./node_modules/@types",
       "./src/types"
-    ]
+    ],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "baseUrl": ".",
+    "paths": {
+      "@*": [
+        "src/*"
+      ]
+    }
   },
   "include": [
     "src/**/*",
-    "package.json"
+    "package.json",
+    "tsconfig.json",
+    "vite.config.ts"
   ],
   "exclude": [
     "node_modules",

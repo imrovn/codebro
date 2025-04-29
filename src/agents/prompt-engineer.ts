@@ -1,7 +1,7 @@
-import type { AgentConfig } from "agents/agents.types.ts";
-import { BaseAgent } from "agents/base-agent.ts";
-import { getPrompterTools } from "tools";
-import type { AgentContext } from "agents";
+import type { AgentContext } from "@agents";
+import type { AgentConfig } from "@agents/agents.types";
+import { BaseAgent } from "@agents/base-agent";
+import { getPrompterTools } from "@tools";
 
 /**
  * Coder Agent - specialized agent for coding tasks

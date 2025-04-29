@@ -1,8 +1,9 @@
-import type { Tool } from "tools/tools.types.ts";
-import type OpenAI from "openai";
-import { OraManager } from "utils/ora-manager";
 import chalk from "chalk";
-import type { AgentContext } from "agents";
+import type OpenAI from "openai";
+
+import type { AgentContext } from "@agents";
+import type { Tool } from "@tools/tools.types";
+import { OraManager } from "@utils/ora-manager";
 
 /**
  * Thinking Tool: Simulates reflection or reasoning by waiting and then responding with a summary.

@@ -1,9 +1,10 @@
-import type { Tool } from "tools/tools.types.ts";
-import type OpenAI from "openai";
-import { callLlm } from "utils/llm.ts";
-import { OraManager } from "utils/ora-manager.ts";
-import type { AgentContext } from "agents";
 import chalk from "chalk";
+import type OpenAI from "openai";
+
+import type { AgentContext } from "@agents";
+import type { Tool } from "@tools/tools.types";
+import { callLlm } from "@utils/llm";
+import { OraManager } from "@utils/ora-manager";
 
 /**
  * Fetch content from a URL

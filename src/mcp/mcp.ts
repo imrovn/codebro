@@ -1,11 +1,13 @@
+import type { AgentContext } from "@agents";
+import type { McpConfig } from "@mcp/mcp.types";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { execSync } from "child_process";
-import * as path from "path";
-import type { McpConfig } from "mcp/mcp.types.ts";
+import type { Tool } from "@tools";
+
+import { execSync } from "node:child_process";
+import * as path from "node:path";
+
 import { version } from "../../package.json";
-import type { Tool } from "tools";
-import type { AgentContext } from "agents";
 
 /**
  * Options for creating tools from MCP config
@@ -15,7 +17,7 @@ export interface CreateActionsFromMcpConfigOptions {
   config: McpConfig;
   /**
    * Environment variable mappings to apply to all MCPs.
-   * Format: { "MCP_VAR_NAME": "value_or_env_var_name" }
+   * Format: { "@mcp_VAR_NAME": "value_or_env_var_name" }
    * If the value is an environment variable name, its value will be used.
    * Otherwise, the literal value will be used.
    */
@@ -183,7 +185,7 @@ export async function createToolsFromMcpConfig({
       }
 
       console.log(
-        `Loaded ${toolNames.length > 0 ? "tools [" + toolNames.join(",") + "]" : "0 tools"} from MCP ${mcpName}`
+        `Loaded ${toolNames.length > 0 ? "@tools [" + toolNames.join(",") + "]" : "0 tools"} from MCP ${mcpName}`
       );
     } catch (error) {
       console.error(`Error setting up ${mcpName}:`, error);

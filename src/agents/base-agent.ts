@@ -1,18 +1,20 @@
+import type OpenAI from "openai";
+import process from "process";
+
 import type {
+  AIResponse,
   AgentConfig,
   AgentContext,
   AgentMode,
   AgentRunHistory,
   AgentState,
-  AIResponse,
-} from "agents/agents.types.ts";
-import { formatToolsForPrompt, removeRedundantTools, type Task, type Tool } from "tools";
-import { createAssistantMessage, createUserMessage, type Message } from "messages";
-import type OpenAI from "openai";
-import process from "process";
-import path from "path";
-import { promises as fs } from "fs";
-import { OraManager } from "utils/ora-manager.ts";
+} from "@agents/agents.types";
+import { type Message, createAssistantMessage, createUserMessage } from "@messages";
+import { type Task, type Tool, formatToolsForPrompt, removeRedundantTools } from "@tools";
+import { OraManager } from "@utils/ora-manager";
+
+import { promises as fs } from "node:fs";
+import path from "node:path";
 
 const defaultHistory: AgentRunHistory = {
   messages: [],

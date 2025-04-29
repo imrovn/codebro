@@ -1,4 +1,4 @@
-import type { AgentContext } from "agents";
+import type { AgentContext } from "@agents";
 
 export async function callLlm(context: AgentContext, systemPrompt: string, prompt: string): Promise<string> {
   const { model, client } = context;

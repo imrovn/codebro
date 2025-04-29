@@ -1,10 +1,12 @@
-import type { Tool } from "tools/tools.types.ts";
-import type OpenAI from "openai";
-import { dirname, isAbsolute, resolve } from "node:path";
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { type Hunk, structuredPatch } from "diff";
-import { formatSuffix, OraManager } from "utils/ora-manager";
-import type { AgentContext } from "agents";
+import type OpenAI from "openai";
+
+import type { AgentContext } from "@agents";
+import type { Tool } from "@tools/tools.types.ts";
+import { OraManager, formatSuffix } from "@utils/ora-manager";
+
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { dirname, isAbsolute, resolve } from "node:path";
 
 /**
  * Arguments for proposeCodeTool.
@@ -65,7 +67,7 @@ export const proposeCodeTool: Tool = {
               description: "Lint error IDs this edit aims to fix (optional)",
             },
           },
-          required: ["path", "oldString", "newString", "codeMarkdownLanguage", "instruction"],
+          required: ["node:path", "oldString", "newString", "codeMarkdownLanguage", "instruction"],
           additionalProperties: false,
         },
       },

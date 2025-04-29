@@ -1,5 +1,6 @@
 import OpenAI from "openai";
-import type { AgentContext } from "agents";
+
+import type { AgentContext } from "@agents";
 
 /**
  * Tool definition

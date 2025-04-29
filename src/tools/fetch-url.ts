@@ -1,11 +1,13 @@
-import type { Tool } from "./tools.types.ts";
-import type OpenAI from "openai";
 import axios from "axios";
+import chalk from "chalk";
 import * as cheerio from "cheerio";
 import { convert } from "html-to-text";
-import { OraManager } from "utils/ora-manager";
-import chalk from "chalk";
-import type { AgentContext } from "agents";
+import type OpenAI from "openai";
+
+import type { AgentContext } from "@agents";
+import { OraManager } from "@utils/ora-manager";
+
+import type { Tool } from "./tools.types.ts";
 
 /**
  * Fetch content from a URL

@@ -1,14 +1,17 @@
 #!/usr/bin/env node
-import { createConfig } from "configs";
-import * as readline from "node:readline/promises";
-import { cliApp } from "./cli.ts";
-import process from "process";
-import type { BaseAgent } from "agents/base-agent.ts";
-import { OraManager } from "utils/ora-manager.ts";
 import chalk from "chalk";
-import { getAgent } from "agents";
 import figlet from "figlet";
-import { gatherContext } from "agents/context.ts";
+import process from "process";
+
+import { getAgent } from "@agents";
+import type { BaseAgent } from "@agents/base-agent.ts";
+import { gatherContext } from "@agents/context.ts";
+import { createConfig } from "@configs";
+import { OraManager } from "@utils/ora-manager.ts";
+
+import * as readline from "node:readline/promises";
+
+import { cliApp } from "./cli.ts";
 
 const controller = new AbortController();
 const signal = controller.signal;

@@ -1,5 +1,6 @@
-import type { Config } from "configs";
 import OpenAI, { AzureOpenAI } from "openai";
+
+import type { Config } from "@configs";
 
 export type ClientProvider = "azure" | "openai" | "openrouter" | "localLM" | "gemini";
 

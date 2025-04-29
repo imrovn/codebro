@@ -6,4 +6,5 @@ build
 vendor
 *.min.js
 bun.lock
-
+tsconfig.json
+dist

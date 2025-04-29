@@ -18,25 +18,30 @@ supports developers in writing, debugging, and planning code efficiently.
 ## Installation
 
 1. **Clone the Repository**:
+
    ```bash
    git clone https://github.com/rovndev/codebro.git
    cd codebro
    ```
 
 2. **Install Dependencies**:
+
    ```bash
    bun install
    ```
 
 3. **Set Up Environment Variables**:
    Copy the `.env.example` to `.env` and configure your API keys:
+
    ```bash
    cp .env.example .env
    ```
+
    Edit `.env` to include your preferred LLM provider's API key and settings (
    e.g., `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY`, etc.).
 
 4. **Build the Project**:
+
    ```bash
    bun run build
    ```
@@ -105,6 +110,9 @@ See [Configuration](#configuration) for more detail and system environment neede
 
 1. **Plan a Feature**:
    Use the `architect` tool to break down a task into steps:
+
+   ```
+
    ```
 
 You: Create a simple REST API
@@ -114,20 +122,25 @@ Codebro: Planning architecture...
 - Task: Define API routes
 - Task: Implement endpoints
 
-   ```
+  ```
+
+  ```
 
 2. **Edit Code**:
    Propose and apply code changes:
+
+   ```
+
    ```
 
 You: Add a GET endpoint to fetch users
 Codebro: Proposing code edit... File edited successfully: src/api.ts
 
-   ```
+```
 
 3. **Manage Tasks**:
-   Track progress in `.codebro/tasks.md`:
-   ```
+Track progress in `.codebro/tasks.md`:
+```
 
 # Codebro Tasks
 
@@ -136,7 +149,9 @@ Codebro: Proposing code edit... File edited successfully: src/api.ts
 - [x] Define route (subtask-456)
 - [ ] Implement logic (subtask-789)
 
-   ```
+  ```
+
+  ```
 
 ## Model Context Protocol (MCP)
 
@@ -171,7 +186,7 @@ Example `config.json`:
 
 ```json
 {
-  "mcpServers": {
+  "@mcpServers": {
     "playwright": {
       "command": "npx",
       "args": [
@@ -194,16 +209,13 @@ Example `config.json`:
       ]
     }
   },
-  "mcpServersPath": "/path/to/your-mcp-config",
+  "@mcpServersPath": "/path/to/your-mcp-config",
   "ignoreFiles": [
     "**/dist/**",
     "**/node_modules/**",
     "**/build/**"
   ],
-  "excludeTools": [
-    "searchCode",
-    "editFile"
-  ]
+  "excludeTools": []
 }
 ```
 
@@ -260,4 +272,3 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 ## Support
 
 For issues or feature requests, open an issue on the [GitHub repository](https://github.com/rovndev/codebro/issues).
-

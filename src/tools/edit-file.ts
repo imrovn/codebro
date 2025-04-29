@@ -1,11 +1,13 @@
-import type { Tool } from "tools/tools.types.ts";
+import chalk from "chalk";
 import type OpenAI from "openai";
-import path from "node:path";
+
+import type { AgentContext } from "@agents";
+import { getPatch } from "@tools/propose-code.ts";
+import type { Tool } from "@tools/tools.types.ts";
+import { formatSuffix, OraManager } from "@utils/ora-manager";
+
 import fs from "node:fs";
-import { formatSuffix, OraManager } from "utils/ora-manager";
-import type { AgentContext } from "agents";
-import { getPatch } from "tools/propose-code.ts"; // Import getPatch for diff
-import chalk from "chalk"; // For formatting diff output
+import path from "node:path";
 
 /**
  * Edit a file in the project by replacing a searchString with newString
@@ -58,7 +60,7 @@ Usage Instructions:
               default: true,
             },
           },
-          required: ["path", "searchString", "newString"],
+          required: ["node:path", "searchString", "newString"],
           additionalProperties: false,
         },
       },
